@@ -1,0 +1,50 @@
+cmake_minimum_required(VERSION 3.16)
+project(qutaq-panel VERSION 0.1 LANGUAGES C CXX)  # C — для кода, сгенерированного wayland-scanner
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_AUTOMOC ON)
+
+# Qt >= 6.5 нужен для поокнонной shell-интеграции: панель — layer-shell поверхность,
+# а её выпадающие меню — обычные xdg_popup, привязанные к ней.
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets DBus WaylandClient)
+
+# LayerShellQt 5.x (Plasma 5) превращает в layer-surface ВСЕ окна, включая QMenu —
+# меню тогда открываются на весь экран. Поэтому только 6.x.
+find_package(LayerShellQt 6.0 REQUIRED)
+
+qt_add_executable(qutaq-panel
+    src/main.cpp
+    src/panel.h                src/panel.cpp
+    src/appmenuregistrar.h     src/appmenuregistrar.cpp
+    src/menuimporter.h
+    src/dbusmenuimporter.h     src/dbusmenuimporter.cpp
+    src/gmenuimporter.h        src/gmenuimporter.cpp
+    src/toplevelmanager.h      src/toplevelmanager.cpp
+    src/menucontroller.h       src/menucontroller.cpp
+    src/sessionmenu.h          src/sessionmenu.cpp
+    src/soundmenu.h            src/soundmenu.cpp
+    src/networkmenu.h          src/networkmenu.cpp
+    src/keyboardindicator.h    src/keyboardindicator.cpp
+    src/batteryindicator.h     src/batteryindicator.cpp
+    src/bluetoothindicator.h   src/bluetoothindicator.cpp
+    src/statusnotifier.h       src/statusnotifier.cpp
+    src/labwctheme.h           src/labwctheme.cpp
+    src/settings.h
+)
+
+# Генерирует qwayland-*.h / wayland-*-client-protocol.h из XML протокола
+qt6_generate_wayland_protocol_client_sources(qutaq-panel
+    FILES ${CMAKE_CURRENT_SOURCE_DIR}/protocols/wlr-foreign-toplevel-management-unstable-v1.xml
+)
+
+target_link_libraries(qutaq-panel PRIVATE
+    Qt6::Core Qt6::Gui Qt6::Widgets Qt6::DBus Qt6::WaylandClient
+    LayerShellQt::Interface
+)
+target_compile_definitions(qutaq-panel PRIVATE
+    LSQ_VERSION_MAJOR=${LayerShellQt_VERSION_MAJOR}
+    LSQ_VERSION_MINOR=${LayerShellQt_VERSION_MINOR}
+)
+
+install(TARGETS qutaq-panel RUNTIME DESTINATION bin)
