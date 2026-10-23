@@ -522,7 +522,7 @@ void MenuController::reevaluate()
 
     const bool appChanged = name != m_appName;
     m_appName = name;
-    m_windowMenu->setTitle(m_appName.isEmpty() ? QStringLiteral("Рабочий стол") : m_appName);
+    m_windowMenu->setTitle(m_appName.isEmpty() ? tr("Desktop") : m_appName);
 
     if (appChanged || appId != m_lastAppId) {
         QStringList c;
@@ -634,16 +634,16 @@ void MenuController::rebuildWindowMenu()
     Toplevel *t = m_toplevels->active();
     if (!t) {
         auto *a = m_windowMenu->addAction(hasToplevelTracking()
-                                              ? QStringLiteral("Нет активного окна")
-                                              : QStringLiteral("Композитор не поддерживает wlr-foreign-toplevel"));
+                                              ? tr("No active window")
+                                              : tr("The compositor does not support wlr-foreign-toplevel"));
         a->setEnabled(false);
         return;
     }
     QPointer<Toplevel> tp = t;
-    m_windowMenu->addAction(QIcon::fromTheme("window-minimize"), QStringLiteral("Свернуть"), this,
+    m_windowMenu->addAction(QIcon::fromTheme("window-minimize"), tr("Minimize"), this,
                             [tp] { if (tp) tp->set_minimized(); });
     m_windowMenu->addAction(QIcon::fromTheme(t->isMaximized() ? "window-restore" : "window-maximize"),
-                            t->isMaximized() ? QStringLiteral("Восстановить") : QStringLiteral("Развернуть"), this,
+                            t->isMaximized() ? tr("Restore") : tr("Maximize"), this,
                             [tp] {
                                 if (!tp) return;
                                 if (tp->isMaximized()) tp->unset_maximized();
@@ -652,8 +652,8 @@ void MenuController::rebuildWindowMenu()
     // set/unset_fullscreen появились во 2-й версии протокола
     if (wl_proxy_get_version(reinterpret_cast<wl_proxy *>(t->object())) >= 2) {
         m_windowMenu->addAction(QIcon::fromTheme("view-fullscreen"),
-                                t->isFullscreen() ? QStringLiteral("Выйти из полноэкранного режима")
-                                                  : QStringLiteral("Во весь экран"), this,
+                                t->isFullscreen() ? tr("Exit Full Screen")
+                                                  : tr("Full Screen"), this,
                                 [tp] {
                                     if (!tp) return;
                                     if (tp->isFullscreen()) tp->unset_fullscreen();
@@ -661,6 +661,6 @@ void MenuController::rebuildWindowMenu()
                                 });
     }
     m_windowMenu->addSeparator();
-    m_windowMenu->addAction(QIcon::fromTheme("window-close"), QStringLiteral("Закрыть окно"), this,
+    m_windowMenu->addAction(QIcon::fromTheme("window-close"), tr("Close Window"), this,
                             [tp] { if (tp) tp->close(); });
 }

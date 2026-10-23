@@ -69,7 +69,7 @@ bool AppMenuRegistrar::start()
 {
     QDBusConnection bus = QDBusConnection::sessionBus();
     if (!bus.isConnected()) {
-        qWarning() << "Нет подключения к сессионной шине D-Bus";
+        qWarning() << "No connection to the D-Bus session bus";
         return false;
     }
 
@@ -80,12 +80,12 @@ bool AppMenuRegistrar::start()
             this, &AppMenuRegistrar::removeService);
 
     if (!bus.registerObject(kPath, this, QDBusConnection::ExportAllSlots | QDBusConnection::ExportAllSignals)) {
-        qWarning() << "Не удалось экспортировать" << kPath;
+        qWarning() << "Failed to export" << kPath;
         return false;
     }
     if (!bus.registerService(kService)) {
-        qWarning() << kService << "уже занят другим процессом (другая панель?)."
-                   << "Закройте его — регистратор должен быть один.";
+        qWarning() << kService << "is already owned by another process (another panel?)."
+                   << "Close it: there can be only one registrar.";
         return false;
     }
     return true;

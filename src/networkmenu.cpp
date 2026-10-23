@@ -2,6 +2,7 @@
 
 #include "settings.h"
 
+#include <QCoreApplication>
 #include <QAction>
 #include <QActionGroup>
 #include <QApplication>
@@ -136,7 +137,7 @@ static bool reportError(const QDBusMessage &r, const QString &what)
     if (r.type() != QDBusMessage::ErrorMessage)
         return false;
     qWarning().noquote() << "NetworkManager:" << what << r.errorMessage();
-    auto *box = new QMessageBox(QMessageBox::Warning, QStringLiteral("Сеть"),
+    auto *box = new QMessageBox(QMessageBox::Warning, QCoreApplication::translate("NetworkMenu", "Network"),
                                 what + QStringLiteral(":\n") + r.errorMessage());
     box->setAttribute(Qt::WA_DeleteOnClose);
     box->show();
@@ -325,12 +326,12 @@ void NetworkMenu::updateIcon()
     QAction *a = m_menu->menuAction();
     if (!nmAvailable()) {
         a->setIcon(networkIcon(QColor(0x7a, 0x7a, 0x82), 16, 0, 0, true, false));
-        a->setToolTip(QStringLiteral("NetworkManager недоступен"));
+        a->setToolTip(tr("NetworkManager is not available"));
         return;
     }
     if (!getProp(kNMPath, kNM, QStringLiteral("NetworkingEnabled")).toBool()) {
         a->setIcon(networkIcon(fg, 16, 0, 0, true, false));
-        a->setToolTip(QStringLiteral("Сеть выключена"));
+        a->setToolTip(tr("Networking is off"));
         return;
     }
 
@@ -361,18 +362,18 @@ void NetworkMenu::updateIcon()
                     strength = getProp(ap, kAP, QStringLiteral("Strength")).toInt();
             }
             a->setIcon(networkIcon(fg, 16, 2, wifiLevel(strength), connecting, vpn));
-            tip = connecting ? QStringLiteral("Подключение к Wi-Fi «%1»…").arg(main->id)
-                             : QStringLiteral("Wi-Fi «%1», сигнал %2%").arg(main->id).arg(strength);
+            tip = connecting ? tr("Connecting to Wi-Fi “%1”…").arg(main->id)
+                             : tr("Wi-Fi “%1”, signal %2%").arg(main->id).arg(strength);
         } else {
             a->setIcon(networkIcon(fg, 16, 1, 0, connecting, vpn));
-            tip = connecting ? QStringLiteral("Подключение «%1»…").arg(main->id)
-                             : QStringLiteral("Соединение «%1»").arg(main->id);
+            tip = connecting ? tr("Connecting “%1”…").arg(main->id)
+                             : tr("Connection “%1”").arg(main->id);
         }
         if (!connecting && state < NMConnectedLocal)
-            tip += QStringLiteral(" (без доступа к сети)");
+            tip += tr(" (no network access)");
     } else {
         a->setIcon(networkIcon(fg, 16, 0, 0, state != NMConnecting, false));
-        tip = state == NMConnecting ? QStringLiteral("Подключение…") : QStringLiteral("Нет соединения");
+        tip = state == NMConnecting ? tr("Connecting…") : tr("Not connected");
     }
     if (vpn)
         tip += QStringLiteral(" + VPN");
@@ -392,9 +393,9 @@ void NetworkMenu::rebuild()
 {
     m_menu->clear();
     if (!nmAvailable()) {
-        addHeader(m_menu, QStringLiteral("NetworkManager недоступен"));
+        addHeader(m_menu, tr("NetworkManager is not available"));
         m_menu->addSeparator();
-        m_menu->addAction(QStringLiteral("Изменить соединения…"), this, [this] { openEditor(); });
+        m_menu->addAction(tr("Edit Connections…"), this, [this] { openEditor(); });
         return;
     }
     const bool networking = getProp(kNMPath, kNM, QStringLiteral("NetworkingEnabled")).toBool();
@@ -427,14 +428,14 @@ void NetworkMenu::rebuild()
         m_menu->addSeparator();
     }
 
-    QAction *enable = m_menu->addAction(QStringLiteral("Включить сеть"));
+    QAction *enable = m_menu->addAction(tr("Enable Networking"));
     enable->setCheckable(true);
     enable->setChecked(networking);
     connect(enable, &QAction::triggered, this, [](bool on) {
-        reportError(nmCall(kNMPath, kNM, QStringLiteral("Enable"), {on}), QStringLiteral("Не удалось изменить состояние сети"));
+        reportError(nmCall(kNMPath, kNM, QStringLiteral("Enable"), {on}), tr("Could not change the network state"));
     });
     if (!wifi.isEmpty()) {
-        QAction *w = m_menu->addAction(QStringLiteral("Включить Wi-Fi"));
+        QAction *w = m_menu->addAction(tr("Enable Wi-Fi"));
         w->setCheckable(true);
         w->setChecked(getProp(kNMPath, kNM, QStringLiteral("WirelessEnabled")).toBool());
         w->setEnabled(networking && getProp(kNMPath, kNM, QStringLiteral("WirelessHardwareEnabled")).toBool());
@@ -442,17 +443,17 @@ void NetworkMenu::rebuild()
             reportError(nmCall(kNMPath, kProps, QStringLiteral("Set"),
                                {QString::fromLatin1(kNM), QStringLiteral("WirelessEnabled"),
                                 QVariant::fromValue(QDBusVariant(on))}),
-                        QStringLiteral("Не удалось включить/выключить Wi-Fi"));
+                        tr("Could not turn Wi-Fi on or off"));
         });
     }
     m_menu->addSeparator();
 
     const QList<ActiveConnection> active = activeConnections();
-    QAction *info = m_menu->addAction(QStringLiteral("Сведения о соединении"), this, &NetworkMenu::showInfo);
+    QAction *info = m_menu->addAction(tr("Connection Information"), this, &NetworkMenu::showInfo);
     info->setEnabled(std::any_of(active.cbegin(), active.cend(), [](const ActiveConnection &c) {
         return !c.vpn && c.state == ActiveActivated;
     }));
-    m_menu->addAction(QStringLiteral("Изменить соединения…"), this, [this] { openEditor(); });
+    m_menu->addAction(tr("Edit Connections…"), this, [this] { openEditor(); });
 }
 
 void NetworkMenu::addWiredSection(const QString &dev)
@@ -465,9 +466,9 @@ void NetworkMenu::addWiredSection(const QString &dev)
                                    ? QString()
                                    : toPath(getProp(activePath, kActive, QStringLiteral("Connection")));
 
-    addHeader(m_menu, QStringLiteral("Проводная сеть (%1)").arg(iface));
+    addHeader(m_menu, tr("Wired Network (%1)").arg(iface));
     if (state == DevUnavailable) {
-        addHeader(m_menu, QStringLiteral("Кабель не подключён"));
+        addHeader(m_menu, tr("Cable unplugged"));
         return;
     }
     const QList<SavedConnection> saved = savedConnections();
@@ -485,21 +486,21 @@ void NetworkMenu::addWiredSection(const QString &dev)
             reportError(nmCall(kNMPath, kNM, QStringLiteral("ActivateConnection"),
                                {QVariant::fromValue(QDBusObjectPath(conn)), QVariant::fromValue(QDBusObjectPath(dev)),
                                 QVariant::fromValue(QDBusObjectPath(QStringLiteral("/")))}),
-                        QStringLiteral("Не удалось подключиться"));
+                        tr("Could not connect"));
         });
     }
     if (available.isEmpty() && state == DevDisconnected) {
         // Профиля нет — NetworkManager создаст его сам
-        m_menu->addAction(QStringLiteral("Подключить"), this, [dev] {
+        m_menu->addAction(tr("Connect"), this, [dev] {
             reportError(nmCall(kNMPath, kNM, QStringLiteral("ActivateConnection"),
                                {QVariant::fromValue(QDBusObjectPath(QStringLiteral("/"))), QVariant::fromValue(QDBusObjectPath(dev)),
                                 QVariant::fromValue(QDBusObjectPath(QStringLiteral("/")))}),
-                        QStringLiteral("Не удалось подключиться"));
+                        tr("Could not connect"));
         });
     }
     if (state >= DevPrepare && state <= DevActivated) {
-        m_menu->addAction(QStringLiteral("Отключить"), this, [dev] {
-            reportError(nmCall(dev, kDevice, QStringLiteral("Disconnect")), QStringLiteral("Не удалось отключиться"));
+        m_menu->addAction(tr("Disconnect"), this, [dev] {
+            reportError(nmCall(dev, kDevice, QStringLiteral("Disconnect")), tr("Could not disconnect"));
         });
     }
 }
@@ -510,9 +511,9 @@ void NetworkMenu::addWifiSection(const QString &dev)
     const QString iface = unwrap(p.value(QStringLiteral("Interface"))).toString();
     const uint state = unwrap(p.value(QStringLiteral("State"))).toUInt();
 
-    addHeader(m_menu, QStringLiteral("Беспроводная сеть (%1)").arg(iface));
+    addHeader(m_menu, tr("Wireless Network (%1)").arg(iface));
     if (!getProp(kNMPath, kNM, QStringLiteral("WirelessEnabled")).toBool()) {
-        addHeader(m_menu, QStringLiteral("Wi-Fi выключен"));
+        addHeader(m_menu, tr("Wi-Fi is off"));
         return;
     }
 
@@ -573,14 +574,14 @@ void NetworkMenu::addWifiSection(const QString &dev)
         QMenu *target = m_menu;
         if (i >= shown) {
             if (!more)
-                more = m_menu->addMenu(QStringLiteral("Другие сети"));
+                more = m_menu->addMenu(tr("More Networks"));
             target = more;
         }
         QAction *a = target->addAction(networkIcon(fg, 16, 2, wifiLevel(n.strength), false, n.secured), n.ssid);
         a->setIconVisibleInMenu(true);
         a->setCheckable(true);
         a->setChecked(n.active);
-        a->setToolTip(QStringLiteral("Сигнал %1%%2").arg(n.strength).arg(n.secured ? QStringLiteral(", защищена") : QString()));
+        a->setToolTip(tr("Signal %1%%2").arg(n.strength).arg(n.secured ? tr(", secured") : QString()));
         group->addAction(a);
         connect(a, &QAction::triggered, this, [this, dev, n] {
             if (!n.active)
@@ -588,16 +589,16 @@ void NetworkMenu::addWifiSection(const QString &dev)
         });
     }
     if (nets.isEmpty())
-        addHeader(m_menu, QStringLiteral("Сети не найдены"));
+        addHeader(m_menu, tr("No networks found"));
 
-    m_menu->addAction(QStringLiteral("Подключиться к скрытой сети…"), this, [this, dev] {
+    m_menu->addAction(tr("Connect to Hidden Network…"), this, [this, dev] {
         bool ok = false;
-        const QString ssid = QInputDialog::getText(nullptr, QStringLiteral("Скрытая сеть Wi-Fi"),
-                                                   QStringLiteral("Имя сети (SSID):"), QLineEdit::Normal, QString(), &ok);
+        const QString ssid = QInputDialog::getText(nullptr, tr("Hidden Wi-Fi Network"),
+                                                   tr("Network name (SSID):"), QLineEdit::Normal, QString(), &ok);
         if (!ok || ssid.isEmpty())
             return;
-        const QString pass = QInputDialog::getText(nullptr, QStringLiteral("Скрытая сеть Wi-Fi"),
-                                                   QStringLiteral("Пароль (пусто — открытая сеть):"), QLineEdit::Password,
+        const QString pass = QInputDialog::getText(nullptr, tr("Hidden Wi-Fi Network"),
+                                                   tr("Password (leave empty for an open network):"), QLineEdit::Password,
                                                    QString(), &ok);
         if (!ok)
             return;
@@ -610,12 +611,12 @@ void NetworkMenu::addWifiSection(const QString &dev)
         reportError(nmCall(kNMPath, kNM, QStringLiteral("AddAndActivateConnection"),
                            {QVariant::fromValue(s), QVariant::fromValue(QDBusObjectPath(dev)),
                             QVariant::fromValue(QDBusObjectPath(QStringLiteral("/")))}),
-                    QStringLiteral("Не удалось подключиться к «%1»").arg(ssid));
+                    tr("Could not connect to “%1”").arg(ssid));
     });
 
     if (state >= DevPrepare && state <= DevActivated) {
-        m_menu->addAction(QStringLiteral("Отключить"), this, [dev] {
-            reportError(nmCall(dev, kDevice, QStringLiteral("Disconnect")), QStringLiteral("Не удалось отключиться"));
+        m_menu->addAction(tr("Disconnect"), this, [dev] {
+            reportError(nmCall(dev, kDevice, QStringLiteral("Disconnect")), tr("Could not disconnect"));
         });
     }
 }
@@ -628,7 +629,7 @@ void NetworkMenu::connectToAccessPoint(const QString &dev, const QString &ap, co
             reportError(nmCall(kNMPath, kNM, QStringLiteral("ActivateConnection"),
                                {QVariant::fromValue(QDBusObjectPath(c.path)), QVariant::fromValue(QDBusObjectPath(dev)),
                                 QVariant::fromValue(QDBusObjectPath(ap))}),
-                        QStringLiteral("Не удалось подключиться к «%1»").arg(ssid));
+                        tr("Could not connect to “%1”").arg(ssid));
             return;
         }
     }
@@ -636,8 +637,8 @@ void NetworkMenu::connectToAccessPoint(const QString &dev, const QString &ap, co
     NMSettings s;
     if (secured) {
         bool ok = false;
-        const QString pass = QInputDialog::getText(nullptr, QStringLiteral("Подключение к Wi-Fi"),
-                                                   QStringLiteral("Пароль сети «%1»:").arg(ssid), QLineEdit::Password,
+        const QString pass = QInputDialog::getText(nullptr, tr("Wi-Fi Connection"),
+                                                   tr("Password for “%1”:").arg(ssid), QLineEdit::Password,
                                                    QString(), &ok);
         if (!ok)
             return;
@@ -648,12 +649,12 @@ void NetworkMenu::connectToAccessPoint(const QString &dev, const QString &ap, co
     reportError(nmCall(kNMPath, kNM, QStringLiteral("AddAndActivateConnection"),
                        {QVariant::fromValue(s), QVariant::fromValue(QDBusObjectPath(dev)),
                         QVariant::fromValue(QDBusObjectPath(ap))}),
-                QStringLiteral("Не удалось подключиться к «%1»").arg(ssid));
+                tr("Could not connect to “%1”").arg(ssid));
 }
 
 void NetworkMenu::addVpnMenu()
 {
-    QMenu *vpn = m_menu->addMenu(QStringLiteral("VPN-соединения"));
+    QMenu *vpn = m_menu->addMenu(tr("VPN Connections"));
     const QList<ActiveConnection> active = activeConnections();
     bool any = false;
     for (const SavedConnection &c : savedConnections()) {
@@ -672,19 +673,19 @@ void NetworkMenu::addVpnMenu()
             if (!activePath.isEmpty())
                 reportError(nmCall(kNMPath, kNM, QStringLiteral("DeactivateConnection"),
                                    {QVariant::fromValue(QDBusObjectPath(activePath))}),
-                            QStringLiteral("Не удалось отключить «%1»").arg(id));
+                            tr("Could not disconnect “%1”").arg(id));
             else
                 reportError(nmCall(kNMPath, kNM, QStringLiteral("ActivateConnection"),
                                    {QVariant::fromValue(QDBusObjectPath(conn)),
                                     QVariant::fromValue(QDBusObjectPath(QStringLiteral("/"))),
                                     QVariant::fromValue(QDBusObjectPath(QStringLiteral("/")))}),
-                            QStringLiteral("Не удалось подключить «%1»").arg(id));
+                            tr("Could not connect “%1”").arg(id));
         });
     }
     if (!any)
-        addHeader(vpn, QStringLiteral("Нет VPN-соединений"));
+        addHeader(vpn, tr("No VPN connections"));
     vpn->addSeparator();
-    vpn->addAction(QStringLiteral("Настроить VPN…"), this, [this] { openEditor(); });
+    vpn->addAction(tr("Configure VPN…"), this, [this] { openEditor(); });
 }
 
 void NetworkMenu::openEditor(const QStringList &extraArgs)
@@ -695,8 +696,8 @@ void NetworkMenu::openEditor(const QStringList &extraArgs)
     QStringList args = QProcess::splitCommand(cmd) + extraArgs;
     const QString program = args.takeFirst();
     if (QStandardPaths::findExecutable(program).isEmpty() && !QFileInfo::exists(program)) {
-        auto *box = new QMessageBox(QMessageBox::Information, QStringLiteral("Сеть"),
-                                    QStringLiteral("Не найдена программа «%1».\nУстановите пакет network-manager-applet.")
+        auto *box = new QMessageBox(QMessageBox::Information, tr("Network"),
+                                    tr("Program “%1” not found.\nInstall the network-manager-applet package.")
                                         .arg(program));
         box->setAttribute(Qt::WA_DeleteOnClose);
         box->show();
@@ -723,7 +724,7 @@ void NetworkMenu::showInfo()
     auto *dlg = new QDialog;
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->setObjectName(QStringLiteral("network-info"));
-    dlg->setWindowTitle(QStringLiteral("Сведения о соединении"));
+    dlg->setWindowTitle(tr("Connection Information"));
     m_info = dlg;
     auto *layout = new QVBoxLayout(dlg);
 
@@ -744,17 +745,17 @@ void NetworkMenu::showInfo()
             v->setTextInteractionFlags(Qt::TextSelectableByMouse);
             form->addRow(QStringLiteral("<b>%1</b>").arg(label), v);
         };
-        row(QStringLiteral("Интерфейс"), unwrap(d.value(QStringLiteral("Interface"))).toString()
+        row(tr("Interface"), unwrap(d.value(QStringLiteral("Interface"))).toString()
                                             + (type == DeviceWifi ? QStringLiteral(" (Wi-Fi)") : type == DeviceEthernet ? QStringLiteral(" (Ethernet)") : QString()));
-        row(QStringLiteral("MAC-адрес"), unwrap(d.value(QStringLiteral("HwAddress"))).toString());
+        row(tr("MAC address"), unwrap(d.value(QStringLiteral("HwAddress"))).toString());
         if (type == DeviceEthernet) {
             const uint speed = getProp(dev, QStringLiteral("org.freedesktop.NetworkManager.Device.Wired"), QStringLiteral("Speed")).toUInt();
             if (speed)
-                row(QStringLiteral("Скорость"), QStringLiteral("%1 Мбит/с").arg(speed));
+                row(tr("Speed"), tr("%1 Mbit/s").arg(speed));
         } else if (type == DeviceWifi) {
             const uint rate = getProp(dev, kWireless, QStringLiteral("Bitrate")).toUInt();
             if (rate)
-                row(QStringLiteral("Скорость"), QStringLiteral("%1 Мбит/с").arg(rate / 1000));
+                row(tr("Speed"), tr("%1 Mbit/s").arg(rate / 1000));
         }
 
         const QString ip4 = toPath(d.value(QStringLiteral("Ip4Config")));
@@ -762,10 +763,10 @@ void NetworkMenu::showInfo()
             const QVariantMap cfg = getAll(ip4, QStringLiteral("org.freedesktop.NetworkManager.IP4Config"));
             const QList<QVariantMap> addrs = toMapList(cfg.value(QStringLiteral("AddressData")));
             if (!addrs.isEmpty()) {
-                row(QStringLiteral("IPv4-адрес"), addrs.first().value(QStringLiteral("address")).toString());
-                row(QStringLiteral("Маска подсети"), prefixToMask(addrs.first().value(QStringLiteral("prefix")).toInt()));
+                row(tr("IPv4 address"), addrs.first().value(QStringLiteral("address")).toString());
+                row(tr("Subnet mask"), prefixToMask(addrs.first().value(QStringLiteral("prefix")).toInt()));
             }
-            row(QStringLiteral("Шлюз"), unwrap(cfg.value(QStringLiteral("Gateway"))).toString());
+            row(tr("Gateway"), unwrap(cfg.value(QStringLiteral("Gateway"))).toString());
             QStringList dns;
             for (const QVariantMap &n : toMapList(cfg.value(QStringLiteral("NameserverData"))))
                 dns << n.value(QStringLiteral("address")).toString();
@@ -777,7 +778,7 @@ void NetworkMenu::showInfo()
             for (const QVariantMap &a : toMapList(cfg.value(QStringLiteral("AddressData")))) {
                 const QString addr = a.value(QStringLiteral("address")).toString();
                 if (!addr.startsWith(QLatin1String("fe80"))) {
-                    row(QStringLiteral("IPv6-адрес"), addr + '/' + a.value(QStringLiteral("prefix")).toString());
+                    row(tr("IPv6 address"), addr + '/' + a.value(QStringLiteral("prefix")).toString());
                     break;
                 }
             }
@@ -786,7 +787,7 @@ void NetworkMenu::showInfo()
     }
 
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close);
-    buttons->button(QDialogButtonBox::Close)->setText(QStringLiteral("Закрыть"));
+    buttons->button(QDialogButtonBox::Close)->setText(tr("Close"));
     connect(buttons, &QDialogButtonBox::rejected, dlg, &QDialog::close);
     layout->addWidget(buttons);
     dlg->setMinimumWidth(380);

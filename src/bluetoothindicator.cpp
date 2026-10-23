@@ -213,13 +213,13 @@ void BluetoothIndicator::refresh()
     m_menu->menuAction()->setIcon(bluetoothIcon(adapter.isEmpty() ? QColor(0x7a, 0x7a, 0x82) : fg, 16, on, !connected.isEmpty()));
     QString tip;
     if (adapter.isEmpty())
-        tip = QStringLiteral("Адаптер Bluetooth не найден");
+        tip = tr("No Bluetooth adapter found");
     else if (!on)
-        tip = QStringLiteral("Bluetooth выключен");
+        tip = tr("Bluetooth is off");
     else if (connected.isEmpty())
-        tip = QStringLiteral("Bluetooth включён");
+        tip = tr("Bluetooth is on");
     else
-        tip = QStringLiteral("Подключено: %1").arg(connected.join(QStringLiteral(", ")));
+        tip = tr("Connected: %1").arg(connected.join(QStringLiteral(", ")));
     m_menu->menuAction()->setToolTip(tip);
     Q_EMIT changed();
 }
@@ -230,9 +230,9 @@ void BluetoothIndicator::rebuildMenu()
     const Objects objs = managedObjects();
     const QString adapter = adapterPath(objs);
     if (adapter.isEmpty()) {
-        m_menu->addAction(QStringLiteral("Адаптер Bluetooth не найден"))->setEnabled(false);
+        m_menu->addAction(tr("No Bluetooth adapter found"))->setEnabled(false);
         m_menu->addSeparator();
-        m_menu->addAction(QStringLiteral("Параметры Bluetooth…"), this, [this] {
+        m_menu->addAction(tr("Bluetooth Settings…"), this, [this] {
             launch(QStringLiteral("bluetooth/settingsCommand"),
                    {QStringLiteral("blueman-manager"), QStringLiteral("blueberry"), QStringLiteral("gnome-control-center bluetooth")});
         });
@@ -245,14 +245,14 @@ void BluetoothIndicator::rebuildMenu()
     power->setCheckable(true);
     power->setChecked(on);
     if (a.value(QStringLiteral("PowerState")).toString() == QLatin1String("off-blocked"))
-        power->setToolTip(QStringLiteral("Заблокирован (rfkill) — будет разблокирован при включении"));
+        power->setToolTip(tr("Blocked (rfkill): it will be unblocked when turned on"));
     connect(power, &QAction::triggered, this, [this](bool v) { setPowered(v); });
 
-    QAction *visible = m_menu->addAction(QStringLiteral("Видимость"));
+    QAction *visible = m_menu->addAction(tr("Visible"));
     visible->setCheckable(true);
     visible->setChecked(a.value(QStringLiteral("Discoverable")).toBool());
     visible->setEnabled(on);
-    visible->setToolTip(QStringLiteral("Другие устройства видят компьютер как «%1»").arg(a.value(QStringLiteral("Alias")).toString()));
+    visible->setToolTip(tr("Other devices see this computer as “%1”").arg(a.value(QStringLiteral("Alias")).toString()));
     connect(visible, &QAction::triggered, this, [this](bool v) { setAdapterProperty(QStringLiteral("Discoverable"), v); });
 
     // Сопряжённые устройства этого адаптера
@@ -276,7 +276,7 @@ void BluetoothIndicator::rebuildMenu()
         for (const Dev &d : std::as_const(devs)) {
             QMenu *sub = m_menu->addMenu(deviceIcon(d.icon), d.name + (d.connected ? QStringLiteral("  ●") : QString()));
             sub->menuAction()->setIconVisibleInMenu(true);
-            QAction *conn = sub->addAction(QStringLiteral("Подключено"));
+            QAction *conn = sub->addAction(tr("Connected"));
             conn->setCheckable(true);
             conn->setChecked(d.connected);
             const QString path = d.path;
@@ -284,27 +284,27 @@ void BluetoothIndicator::rebuildMenu()
                 deviceCall(path, v ? QStringLiteral("Connect") : QStringLiteral("Disconnect"));
             });
             if (d.battery >= 0)
-                sub->addAction(QStringLiteral("Заряд: %1%").arg(d.battery))->setEnabled(false);
+                sub->addAction(tr("Battery: %1%").arg(d.battery))->setEnabled(false);
             sub->addSeparator();
-            sub->addAction(QStringLiteral("Забыть устройство"), this, [this, adapter, path, name = d.name] {
+            sub->addAction(tr("Forget Device"), this, [this, adapter, path, name = d.name] {
                 QDBusMessage msg = QDBusMessage::createMethodCall(kBluez, adapter, kAdapter, QStringLiteral("RemoveDevice"));
                 msg << QVariant::fromValue(QDBusObjectPath(path));
                 const QDBusMessage r = sysBus().call(msg, QDBus::Block, 5000);
                 if (r.type() == QDBusMessage::ErrorMessage)
-                    showError(QStringLiteral("Не удалось забыть «%1»:\n%2").arg(name, r.errorMessage()));
+                    showError(tr("Could not forget “%1”:\n%2").arg(name, r.errorMessage()));
                 m_debounce->start();
             });
         }
     }
 
     m_menu->addSeparator();
-    QAction *add = m_menu->addAction(QStringLiteral("Добавить новое устройство…"), this, [this] {
+    QAction *add = m_menu->addAction(tr("Add New Device…"), this, [this] {
         launch(QStringLiteral("bluetooth/wizardCommand"),
                {QStringLiteral("blueman-assistant"), QStringLiteral("blueman-manager"), QStringLiteral("blueberry"),
                 QStringLiteral("bluedevil-wizard"), QStringLiteral("gnome-control-center bluetooth")});
     });
     add->setEnabled(on);
-    m_menu->addAction(QStringLiteral("Параметры Bluetooth…"), this, [this] {
+    m_menu->addAction(tr("Bluetooth Settings…"), this, [this] {
         launch(QStringLiteral("bluetooth/settingsCommand"),
                {QStringLiteral("blueman-manager"), QStringLiteral("blueberry"), QStringLiteral("gnome-control-center bluetooth"),
                 QStringLiteral("systemsettings kcm_bluetooth")});
@@ -327,10 +327,10 @@ void BluetoothIndicator::setAdapterProperty(const QString &name, bool value)
                 QTimer::singleShot(700, this, [this] { setAdapterProperty(QStringLiteral("Powered"), true); });
                 return;
             }
-            showError(QStringLiteral("Bluetooth заблокирован (rfkill). Выполните «rfkill unblock bluetooth»."));
+            showError(tr("Bluetooth is blocked (rfkill). Run “rfkill unblock bluetooth”."));
             return;
         }
-        showError(QStringLiteral("Не удалось изменить «%1»:\n%2").arg(name, r.errorMessage()));
+        showError(tr("Could not change “%1”:\n%2").arg(name, r.errorMessage()));
     }
     m_debounce->start();
 }
@@ -349,8 +349,8 @@ void BluetoothIndicator::deviceCall(const QString &path, const QString &method)
         w->deleteLater();
         const QDBusMessage r = w->reply();
         if (r.type() == QDBusMessage::ErrorMessage)
-            showError(QStringLiteral("%1: %2").arg(method == QLatin1String("Connect") ? QStringLiteral("Не удалось подключить")
-                                                                                  : QStringLiteral("Не удалось отключить"),
+            showError(QStringLiteral("%1: %2").arg(method == QLatin1String("Connect") ? tr("Could not connect")
+                                                                                  : tr("Could not disconnect"),
                                                 r.errorMessage()));
         m_debounce->start();
     });
@@ -367,7 +367,7 @@ void BluetoothIndicator::launch(const QString &settingKey, const QStringList &ca
             }
     }
     if (cmd.isEmpty()) {
-        showError(QStringLiteral("Не найдена программа настройки Bluetooth.\nУстановите blueman."));
+        showError(tr("No Bluetooth settings program found.\nInstall blueman."));
         return;
     }
     QStringList args = QProcess::splitCommand(cmd);

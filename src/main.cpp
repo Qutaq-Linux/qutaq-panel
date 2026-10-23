@@ -8,12 +8,17 @@
 #include "bluetoothindicator.h"
 #include "labwctheme.h"
 #include "statusnotifier.h"
+#include "settings.h"
 
 #include <QApplication>
 #include <QDBusConnection>
 #include <QDBusMessage>
 #include <cstring>
+#include <QDebug>
 #include <QHash>
+#include <QLibraryInfo>
+#include <QLocale>
+#include <QTranslator>
 #include <QProxyStyle>
 #include <QScreen>
 
@@ -55,6 +60,41 @@ static int remoteCommand(int argc, char *argv[], const char *method)
     return 0;
 }
 
+// Язык интерфейса: из настроек ([panel] language=ru|en|de|…), иначе системный (LANG).
+// Переводы встроены в программу (:/i18n); файлы .qm в ~/.local/share/qutaq-panel/translations
+// (или /usr/share/…) имеют приоритет — так переводчик проверяет свой перевод без пересборки.
+static void setupTranslations(QApplication &app)
+{
+    const QString lang = panelSetting(QStringLiteral("panel/language")).toString().trimmed();
+    QLocale locale = QLocale::system();
+    if (!lang.isEmpty() && lang != QLatin1String("auto")) {
+        locale = QLocale(lang);
+        QLocale::setDefault(locale);                 // дата в часах — на том же языке
+        qputenv("LANGUAGE", lang.toUtf8());          // gettext: названия раскладок
+    }
+
+    auto *qt = new QTranslator(&app); // кнопки стандартных диалогов Qt
+    if (qt->load(locale, QStringLiteral("qtbase"), QStringLiteral("_"),
+                 QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
+        app.installTranslator(qt);
+    else
+        delete qt;
+
+    QStringList dirs = QStandardPaths::locateAll(QStandardPaths::GenericDataLocation,
+                                                 QStringLiteral("qutaq-panel/translations"),
+                                                 QStandardPaths::LocateDirectory);
+    dirs << QStringLiteral(":/i18n");
+    for (const QString &dir : std::as_const(dirs)) {
+        auto *own = new QTranslator(&app);
+        if (own->load(locale, QStringLiteral("qutaq-panel"), QStringLiteral("_"), dir)) {
+            app.installTranslator(own);
+            qInfo().noquote() << "translation:" << own->filePath();
+            return;
+        }
+        delete own;
+    }
+}
+
 int main(int argc, char *argv[])
 {
     for (int i = 1; i < argc; ++i) {
@@ -73,6 +113,7 @@ int main(int argc, char *argv[])
     app.setApplicationName(QStringLiteral("qutaq-panel"));
     app.setQuitOnLastWindowClosed(false);
     app.setStyle(new PanelStyle);
+    setupTranslations(app);
 
     setupIconTheme(); // до создания меню и значков
 

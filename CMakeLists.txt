@@ -8,6 +8,8 @@ set(CMAKE_AUTOMOC ON)
 # Qt >= 6.5 нужен для поокнонной shell-интеграции: панель — layer-shell поверхность,
 # а её выпадающие меню — обычные xdg_popup, привязанные к ней.
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Gui Widgets DBus WaylandClient)
+# Переводы интерфейса (lrelease). Без Qt Linguist панель соберётся, но только на английском.
+find_package(Qt6 6.5 QUIET OPTIONAL_COMPONENTS LinguistTools)
 
 # LayerShellQt 5.x (Plasma 5) превращает в layer-surface ВСЕ окна, включая QMenu —
 # меню тогда открываются на весь экран. Поэтому только 6.x.
@@ -37,6 +39,19 @@ qt_add_executable(qutaq-panel
 qt6_generate_wayland_protocol_client_sources(qutaq-panel
     FILES ${CMAKE_CURRENT_SOURCE_DIR}/protocols/wlr-foreign-toplevel-management-unstable-v1.xml
 )
+
+# translations/qutaq-panel_<язык>.ts → .qm, встроенные в программу (:/i18n).
+# Новый язык: скопируйте любой .ts, поменяйте language="…" и переведите (см. TRANSLATING.md).
+file(GLOB QUTAQ_TS_FILES ${CMAKE_CURRENT_SOURCE_DIR}/translations/qutaq-panel_*.ts)
+if(TARGET Qt6::lrelease AND QUTAQ_TS_FILES)
+    qt_add_translations(qutaq-panel
+        TS_FILES ${QUTAQ_TS_FILES}
+        RESOURCE_PREFIX /i18n
+        LUPDATE_OPTIONS -no-obsolete -locations none
+    )
+else()
+    message(WARNING "Qt6 LinguistTools not found: building without translations (English only)")
+endif()
 
 target_link_libraries(qutaq-panel PRIVATE
     Qt6::Core Qt6::Gui Qt6::Widgets Qt6::DBus Qt6::WaylandClient

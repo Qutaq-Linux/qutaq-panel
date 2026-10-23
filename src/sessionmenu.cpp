@@ -1,5 +1,6 @@
 #include "sessionmenu.h"
 
+#include <QCoreApplication>
 #include <QAction>
 #include <QApplication>
 #include <QDBusArgument>
@@ -133,7 +134,7 @@ SessionMenu::SessionMenu(QObject *parent)
     , m_menu(new QMenu)
 {
     m_menu->menuAction()->setIcon(powerIcon(QColor(0xe8, 0xe8, 0xec), 16));
-    m_menu->menuAction()->setToolTip(QStringLiteral("Сеанс"));
+    m_menu->menuAction()->setToolTip(tr("Session"));
     m_menu->setToolTipsVisible(true);
     // Состояние (кто вошёл, доступна ли гибернация) меняется — собираем при каждом открытии.
     connect(m_menu, &QMenu::aboutToShow, this, &SessionMenu::rebuild);
@@ -149,8 +150,8 @@ void SessionMenu::rebuild()
 {
     m_menu->clear();
 
-    m_menu->addAction(QStringLiteral("Об этом компьютере"), this, &SessionMenu::showAbout);
-    QAction *settingsAction = m_menu->addAction(QStringLiteral("Параметры системы…"), this, &SessionMenu::openSettings);
+    m_menu->addAction(tr("About This Computer"), this, &SessionMenu::showAbout);
+    QAction *settingsAction = m_menu->addAction(tr("System Settings…"), this, &SessionMenu::openSettings);
     const QString cmd = setting(QStringLiteral("settingsCommand"), QString()).toString();
     if (cmd.isEmpty()) {
         bool found = false;
@@ -166,18 +167,18 @@ void SessionMenu::rebuild()
     }
 
     m_menu->addSeparator();
-    m_menu->addAction(QStringLiteral("Завершить сеанс…"), this, [this] { confirm(Power::LogOut); });
+    m_menu->addAction(tr("Log Out…"), this, [this] { confirm(Power::LogOut); });
 
     const bool logind = serviceAvailable(kLogind);
     if (logind && logindCan(QStringLiteral("Suspend")))
-        m_menu->addAction(QStringLiteral("Ждущий режим"), this, [this] { callLogind(QStringLiteral("Suspend")); });
+        m_menu->addAction(tr("Suspend"), this, [this] { callLogind(QStringLiteral("Suspend")); });
     if (logind && logindCan(QStringLiteral("Hibernate")))
-        m_menu->addAction(QStringLiteral("Гибернация"), this, [this] { callLogind(QStringLiteral("Hibernate")); });
+        m_menu->addAction(tr("Hibernate"), this, [this] { callLogind(QStringLiteral("Hibernate")); });
     if (setting(QStringLiteral("showRestart"), false).toBool()) {
-        QAction *a = m_menu->addAction(QStringLiteral("Перезагрузить…"), this, [this] { confirm(Power::Restart); });
+        QAction *a = m_menu->addAction(tr("Restart…"), this, [this] { confirm(Power::Restart); });
         a->setEnabled(logind && logindCan(QStringLiteral("Reboot")));
     }
-    QAction *off = m_menu->addAction(QStringLiteral("Выключить…"), this, [this] { confirm(Power::Shutdown); });
+    QAction *off = m_menu->addAction(tr("Shut Down…"), this, [this] { confirm(Power::Shutdown); });
     off->setEnabled(logind && (logindCan(QStringLiteral("PowerOff")) || logindCan(QStringLiteral("Reboot"))));
 }
 
@@ -293,12 +294,12 @@ void SessionMenu::addUsers()
         if (u.uid == me) {
             a->setCheckable(true);
             a->setChecked(true);
-            a->setToolTip(QStringLiteral("Текущий сеанс"));
+            a->setToolTip(tr("Current session"));
             continue;
         }
         if (!canSwitch) {
             a->setEnabled(false);
-            a->setToolTip(QStringLiteral("Смена пользователя работает при входе через LightDM"));
+            a->setToolTip(tr("Switching users works when you log in with LightDM"));
             continue;
         }
         const QString name = u.name;
@@ -308,7 +309,7 @@ void SessionMenu::addUsers()
     if (canSwitch) {
         QDBusInterface seat(kDisplayManager, seatPath(), QStringLiteral("org.freedesktop.DisplayManager.Seat"), systemBus());
         if (seat.property("HasGuestAccount").toBool()) {
-            m_menu->addAction(personIcon(), QStringLiteral("Гостевой сеанс"), this, [] {
+            m_menu->addAction(personIcon(), tr("Guest Session"), this, [] {
                 QDBusMessage msg = QDBusMessage::createMethodCall(kDisplayManager, seatPath(),
                                                                   QStringLiteral("org.freedesktop.DisplayManager.Seat"),
                                                                   QStringLiteral("SwitchToGuest"));
@@ -391,16 +392,16 @@ void SessionMenu::confirm(Power what)
     QString title, text;
     switch (what) {
     case Power::LogOut:
-        title = QStringLiteral("Завершение сеанса");
-        text = QStringLiteral("Завершить сеанс %1?").arg(QString::fromLocal8Bit(qgetenv("USER")));
+        title = tr("Log Out", "dialog title");
+        text = tr("Log out %1?").arg(QString::fromLocal8Bit(qgetenv("USER")));
         break;
     case Power::Restart:
-        title = QStringLiteral("Перезагрузка");
-        text = QStringLiteral("Перезагрузить компьютер?");
+        title = tr("Restart", "dialog title");
+        text = tr("Restart the computer?");
         break;
     case Power::Shutdown:
-        title = QStringLiteral("Выключение");
-        text = QStringLiteral("Выключить компьютер?");
+        title = tr("Shut Down", "dialog title");
+        text = tr("Shut down the computer?");
         break;
     }
     dlg->setWindowTitle(title);
@@ -412,7 +413,7 @@ void SessionMenu::confirm(Power what)
     hf.setPointSizeF(hf.pointSizeF() * 1.25);
     hf.setBold(true);
     heading->setFont(hf);
-    auto *details = new QLabel(QStringLiteral("Все открытые программы будут закрыты; несохранённые данные пропадут."));
+    auto *details = new QLabel(tr("All open programs will be closed, and unsaved data will be lost."));
     details->setWordWrap(true);
 
     auto *texts = new QVBoxLayout;
@@ -425,15 +426,15 @@ void SessionMenu::confirm(Power what)
     top->addLayout(texts, 1);
 
     auto *buttons = new QDialogButtonBox;
-    buttons->addButton(QStringLiteral("Отмена"), QDialogButtonBox::RejectRole);
+    buttons->addButton(tr("Cancel"), QDialogButtonBox::RejectRole);
     QPushButton *main = nullptr;
     if (what == Power::LogOut) {
-        main = buttons->addButton(QStringLiteral("Завершить сеанс"), QDialogButtonBox::AcceptRole);
+        main = buttons->addButton(tr("Log Out"), QDialogButtonBox::AcceptRole);
         connect(main, &QPushButton::clicked, this, [this] { doLogOut(); });
     } else {
         // Как в Unity: в окне выключения есть и перезагрузка.
         if (canReboot) {
-            QPushButton *r = buttons->addButton(QStringLiteral("Перезагрузить"),
+            QPushButton *r = buttons->addButton(tr("Restart"),
                                                 what == Power::Restart ? QDialogButtonBox::AcceptRole
                                                                        : QDialogButtonBox::ActionRole);
             connect(r, &QPushButton::clicked, this, [this] { callLogind(QStringLiteral("Reboot")); });
@@ -442,7 +443,7 @@ void SessionMenu::confirm(Power what)
                 main = r;
         }
         if (what == Power::Shutdown && canOff) {
-            main = buttons->addButton(QStringLiteral("Выключить"), QDialogButtonBox::AcceptRole);
+            main = buttons->addButton(tr("Shut Down"), QDialogButtonBox::AcceptRole);
             connect(main, &QPushButton::clicked, this, [this] { callLogind(QStringLiteral("PowerOff")); });
         }
     }
@@ -530,7 +531,7 @@ static QString memTotal()
     for (const QString &line : procLines(QStringLiteral("/proc/meminfo"))) {
         if (line.startsWith(QLatin1String("MemTotal:"))) {
             const double kib = line.section(':', 1).simplified().section(' ', 0, 0).toDouble();
-            return QStringLiteral("%1 ГиБ").arg(kib / 1024 / 1024, 0, 'f', 1);
+            return QCoreApplication::translate("SessionMenu", "%1 GiB").arg(kib / 1024 / 1024, 0, 'f', 1);
         }
     }
     return {};
@@ -549,7 +550,7 @@ void SessionMenu::showAbout()
     auto *dlg = new QDialog;
     dlg->setAttribute(Qt::WA_DeleteOnClose);
     dlg->setObjectName(QStringLiteral("session-about"));
-    dlg->setWindowTitle(QStringLiteral("Об этом компьютере"));
+    dlg->setWindowTitle(tr("About This Computer"));
 
     auto *layout = new QVBoxLayout(dlg);
     layout->setContentsMargins(24, 20, 24, 16);
@@ -591,19 +592,19 @@ void SessionMenu::showAbout()
         v->setTextInteractionFlags(Qt::TextSelectableByMouse);
         form->addRow(QStringLiteral("<b>%1</b>").arg(label), v);
     };
-    row(QStringLiteral("Имя компьютера"), QSysInfo::machineHostName());
-    row(QStringLiteral("Процессор"), QStringLiteral("%1 × %2").arg(cpuModel()).arg(QThread::idealThreadCount()));
-    row(QStringLiteral("Память"), memTotal());
+    row(tr("Computer name"), QSysInfo::machineHostName());
+    row(tr("Processor"), QStringLiteral("%1 × %2").arg(cpuModel()).arg(QThread::idealThreadCount()));
+    row(tr("Memory"), memTotal());
     if (root.isValid())
-        row(QStringLiteral("Диск"), QStringLiteral("%1 ГБ, свободно %2 ГБ")
+        row(tr("Disk"), tr("%1 GB, %2 GB free")
                                         .arg(root.bytesTotal() / 1e9, 0, 'f', 0)
                                         .arg(root.bytesAvailable() / 1e9, 0, 'f', 0));
-    row(QStringLiteral("Ядро"), QSysInfo::kernelType() + ' ' + QSysInfo::kernelVersion());
-    row(QStringLiteral("Окружение"), desktop.isEmpty() ? platform : desktop + QStringLiteral(" (") + platform + ')');
+    row(tr("Kernel"), QSysInfo::kernelType() + ' ' + QSysInfo::kernelVersion());
+    row(tr("Desktop"), desktop.isEmpty() ? platform : desktop + QStringLiteral(" (") + platform + ')');
     layout->addLayout(form);
 
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Close);
-    buttons->button(QDialogButtonBox::Close)->setText(QStringLiteral("Закрыть"));
+    buttons->button(QDialogButtonBox::Close)->setText(tr("Close"));
     connect(buttons, &QDialogButtonBox::rejected, dlg, &QDialog::close);
     layout->addSpacing(8);
     layout->addWidget(buttons);

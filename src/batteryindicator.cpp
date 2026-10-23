@@ -2,6 +2,7 @@
 
 #include "settings.h"
 
+#include <QCoreApplication>
 #include <QAction>
 #include <QDBusArgument>
 #include <QDBusConnection>
@@ -40,21 +41,21 @@ static QDBusConnection sysBus()
 static QString kindName(int kind)
 {
     switch (kind) {
-    case KindBattery: return QStringLiteral("Аккумулятор");
-    case KindUps: return QStringLiteral("ИБП");
-    case 5: return QStringLiteral("Мышь");
-    case 6: return QStringLiteral("Клавиатура");
-    case 7: return QStringLiteral("КПК");
-    case 8: return QStringLiteral("Телефон");
-    case 12: return QStringLiteral("Планшет");
-    case 13: return QStringLiteral("Компьютер");
-    case 14: return QStringLiteral("Геймпад");
-    case 17: return QStringLiteral("Гарнитура");
-    case 18: return QStringLiteral("Динамик");
-    case 19: return QStringLiteral("Наушники");
-    case 22: return QStringLiteral("Наушники");
-    case 26: return QStringLiteral("Стилус");
-    default: return QStringLiteral("Устройство");
+    case KindBattery: return QCoreApplication::translate("BatteryIndicator", "Battery");
+    case KindUps: return QCoreApplication::translate("BatteryIndicator", "UPS");
+    case 5: return QCoreApplication::translate("BatteryIndicator", "Mouse");
+    case 6: return QCoreApplication::translate("BatteryIndicator", "Keyboard");
+    case 7: return QCoreApplication::translate("BatteryIndicator", "PDA");
+    case 8: return QCoreApplication::translate("BatteryIndicator", "Phone");
+    case 12: return QCoreApplication::translate("BatteryIndicator", "Tablet");
+    case 13: return QCoreApplication::translate("BatteryIndicator", "Computer");
+    case 14: return QCoreApplication::translate("BatteryIndicator", "Gamepad");
+    case 17: return QCoreApplication::translate("BatteryIndicator", "Headset");
+    case 18: return QCoreApplication::translate("BatteryIndicator", "Speaker");
+    case 19: return QCoreApplication::translate("BatteryIndicator", "Headphones");
+    case 22: return QCoreApplication::translate("BatteryIndicator", "Headphones");
+    case 26: return QCoreApplication::translate("BatteryIndicator", "Stylus");
+    default: return QCoreApplication::translate("BatteryIndicator", "Device");
     }
 }
 
@@ -64,8 +65,8 @@ static QString duration(qint64 seconds)
         return {};
     const qint64 h = seconds / 3600, m = (seconds % 3600) / 60;
     if (h > 0)
-        return m ? QStringLiteral("%1 ч %2 мин").arg(h).arg(m) : QStringLiteral("%1 ч").arg(h);
-    return QStringLiteral("%1 мин").arg(qMax<qint64>(1, m));
+        return m ? QCoreApplication::translate("BatteryIndicator", "%1 h %2 min").arg(h).arg(m) : QCoreApplication::translate("BatteryIndicator", "%1 h").arg(h);
+    return QCoreApplication::translate("BatteryIndicator", "%1 min").arg(qMax<qint64>(1, m));
 }
 
 QIcon batteryIcon(const QColor &color, int size, double percent, bool charging, bool full)
@@ -241,7 +242,7 @@ QList<BatteryIndicator::Device> BatteryIndicator::readSysfs() const
             const QString model = read(dir + QStringLiteral("model_name"));
             const QString lower = name.toLower() + ' ' + model.toLower();
             d.kind = lower.contains(QLatin1String("mouse")) ? 5 : lower.contains(QLatin1String("keyboard")) || lower.contains(QLatin1String("kbd")) ? 6 : 0;
-            d.name = (d.kind ? kindName(d.kind) : QStringLiteral("Устройство")) + ' ' + model;
+            d.name = (d.kind ? kindName(d.kind) : tr("Device")) + ' ' + model;
         }
         out << d;
     }
@@ -273,7 +274,7 @@ void BatteryIndicator::refresh()
     QString tip, label;
     if (mains.isEmpty()) {
         m_menu->menuAction()->setIcon(batteryIcon(QColor(0x7a, 0x7a, 0x82), 16, 0, false, false));
-        tip = QStringLiteral("Батарей нет");
+        tip = tr("No batteries");
     } else {
         double sum = 0;
         bool charging = false, discharging = false, full = true;
@@ -291,11 +292,11 @@ void BatteryIndicator::refresh()
         const QString time = discharging ? duration(toEmpty) : charging ? duration(toFull) : QString();
         tip = QStringLiteral("%1%").arg(qRound(pct));
         if (full)
-            tip += QStringLiteral(", заряжен");
+            tip += tr(", charged");
         else if (charging)
-            tip += QStringLiteral(", заряжается") + (time.isEmpty() ? QString() : QStringLiteral(" (%1 до полного)").arg(time));
+            tip += tr(", charging") + (time.isEmpty() ? QString() : tr(" (%1 until full)").arg(time));
         else if (discharging && !time.isEmpty())
-            tip += QStringLiteral(", осталось %1").arg(time);
+            tip += tr(", %1 left").arg(time);
 
         if (panelSetting(QStringLiteral("battery/showPercentage"), false).toBool())
             label = QStringLiteral("%1%").arg(qRound(pct));
@@ -327,10 +328,10 @@ void BatteryIndicator::notifyLow(const Device &main)
                 QStringLiteral("org.freedesktop.Notifications"), QStringLiteral("Notify"));
             const QString time = duration(main.toEmpty);
             msg << QStringLiteral("qutaq-panel") << uint(0) << QStringLiteral("battery-caution")
-                << QStringLiteral("Низкий заряд батареи")
-                << QStringLiteral("Осталось %1%%2. Подключите зарядное устройство.")
+                << tr("Battery low")
+                << tr("%1%%2 left. Plug in the charger.")
                        .arg(qRound(main.percent))
-                       .arg(time.isEmpty() ? QString() : QStringLiteral(" (около %1)").arg(time))
+                       .arg(time.isEmpty() ? QString() : tr(" (about %1)").arg(time))
                 << QStringList() << QVariantMap{{QStringLiteral("urgency"), QVariant::fromValue(uchar(threshold <= 5 ? 2 : 1))}}
                 << int(-1);
             QDBusConnection::sessionBus().call(msg, QDBus::NoBlock);
@@ -346,18 +347,18 @@ void BatteryIndicator::rebuildMenu()
     m_menu->clear();
     const QColor fg = m_menu->palette().color(QPalette::WindowText);
     if (m_devices.isEmpty())
-        m_menu->addAction(QStringLiteral("Батарей не найдено"))->setEnabled(false);
+        m_menu->addAction(tr("No batteries found"))->setEnabled(false);
     for (const Device &d : std::as_const(m_devices)) {
         QString text = d.name;
         if (d.percent >= 0)
             text += QStringLiteral("   %1%").arg(qRound(d.percent));
         QString state;
         if (d.state == StateFull)
-            state = QStringLiteral("заряжен");
+            state = tr("charged");
         else if (d.state == StateCharging)
-            state = d.toFull > 0 ? QStringLiteral("%1 до полного заряда").arg(duration(d.toFull)) : QStringLiteral("заряжается");
+            state = d.toFull > 0 ? tr("%1 until fully charged").arg(duration(d.toFull)) : tr("charging");
         else if (d.state == StateDischarging && d.toEmpty > 0)
-            state = QStringLiteral("%1 до разряда").arg(duration(d.toEmpty));
+            state = tr("%1 remaining").arg(duration(d.toEmpty));
         if (!state.isEmpty())
             text += QStringLiteral(" (%1)").arg(state);
         QAction *a = m_menu->addAction(batteryIcon(fg, 16, d.percent, d.state == StateCharging || d.state == StateFull,
@@ -376,10 +377,10 @@ void BatteryIndicator::rebuildMenu()
             refresh();
         });
     };
-    toggle(QStringLiteral("Показывать процент на панели"), QStringLiteral("battery/showPercentage"));
-    toggle(QStringLiteral("Показывать оставшееся время"), QStringLiteral("battery/showTime"));
+    toggle(tr("Show percentage in the panel"), QStringLiteral("battery/showPercentage"));
+    toggle(tr("Show time remaining"), QStringLiteral("battery/showTime"));
     m_menu->addSeparator();
-    m_menu->addAction(QStringLiteral("Параметры электропитания…"), this, [] {
+    m_menu->addAction(tr("Power Settings…"), this, [] {
         QString cmd = panelSetting(QStringLiteral("battery/settingsCommand"), QString()).toString();
         if (cmd.isEmpty())
             for (const char *app : {"xfce4-power-manager-settings", "mate-power-preferences", "gnome-power-statistics"})

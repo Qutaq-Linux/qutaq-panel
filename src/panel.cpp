@@ -13,6 +13,7 @@
 
 #include <LayerShellQt/Window>
 
+#include <QCoreApplication>
 #include <QAbstractButton>
 #include <QDateTime>
 #include <QMouseEvent>
@@ -118,8 +119,9 @@ public:
         setFixedSize(26, 24);
         setAttribute(Qt::WA_Hover);
         setFocusPolicy(Qt::NoFocus);
-        static const char *tips[] = {"Закрыть", "Свернуть", "Восстановить"};
-        setToolTip(QString::fromUtf8(tips[kind]));
+        static const char *const tips[] = {QT_TRANSLATE_NOOP("Panel", "Close"), QT_TRANSLATE_NOOP("Panel", "Minimize"),
+                                           QT_TRANSLATE_NOOP("Panel", "Restore")};
+        setToolTip(QCoreApplication::translate("Panel", tips[kind]));
     }
     LabwcTheme::Button kind() const { return m_kind; }
 

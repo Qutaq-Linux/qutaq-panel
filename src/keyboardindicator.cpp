@@ -280,13 +280,13 @@ void KeyboardIndicator::rebuildMenu()
         connect(a, &QAction::triggered, this, [this, i] { Set(i); });
     }
     m_menu->addSeparator();
-    m_menu->addAction(QStringLiteral("Настроить раскладки…"), this, [] {
+    m_menu->addAction(tr("Configure Layouts…"), this, [] {
         // Раскладки задаются в окружении labwc — открыть его в текстовом редакторе
         const QString path = labwcConfigDir() + QStringLiteral("/environment");
         if (!QFileInfo::exists(path)) {
             QDir().mkpath(labwcConfigDir());
             // Свой файл заслонит системный — начинаем с его копии
-            QByteArray content("# Раскладки клавиатуры, например:\n# XKB_DEFAULT_LAYOUT=us,ru\n");
+            QByteArray content("# Keyboard layouts, for example:\n# XKB_DEFAULT_LAYOUT=us,ru\n");
             for (const QString &d : qEnvironmentVariable("XDG_CONFIG_DIRS", QStringLiteral("/etc/xdg")).split(':', Qt::SkipEmptyParts)) {
                 QFile sys(d + QStringLiteral("/labwc/environment"));
                 if (sys.open(QIODevice::ReadOnly)) {
@@ -302,10 +302,10 @@ void KeyboardIndicator::rebuildMenu()
     });
     m_menu->menuAction()->setText(shortName());
     m_menu->menuAction()->setToolTip(canSwitch()
-        ? QStringLiteral("%1 — щелчок: следующая раскладка, правая кнопка: список").arg(m_layouts.value(m_current).description)
+        ? tr("%1. Click: next layout; right-click: list").arg(m_layouts.value(m_current).description)
         : qEnvironmentVariableIntValue("LABWC_PID") > 1
-            ? QStringLiteral("Для переключения раскладки нужен labwc 0.7.2 или новее")
-            : QStringLiteral("Переключение раскладки работает только в labwc"));
+            ? tr("Switching layouts requires labwc 0.7.2 or newer")
+            : tr("Layout switching works only in labwc"));
 }
 
 void KeyboardIndicator::Next()
@@ -344,8 +344,8 @@ void KeyboardIndicator::apply()
     QSaveFile f(overridePath());
     if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
         QTextStream ts(&f);
-        ts << "# Создано qutaq-panel: текущая раскладка — первая в списке.\n"
-              "# Удалите файл, чтобы вернуть порядок из ~/.config/labwc/environment.\n";
+        ts << "# Created by qutaq-panel: the current layout comes first.\n"
+              "# Delete this file to restore the order from ~/.config/labwc/environment.\n";
         // labwc читает только первый найденный файл environment (вместе с его environment.d):
         // если у пользователя своего нет, наш файл заслонил бы системный /etc/xdg/labwc/environment —
         // поэтому переносим его строки сюда.
@@ -355,7 +355,7 @@ void KeyboardIndicator::apply()
                 QFile sys(d + QStringLiteral("/labwc/environment"));
                 if (!sys.open(QIODevice::ReadOnly | QIODevice::Text))
                     continue;
-                ts << "# из " << sys.fileName() << '\n' << QString::fromUtf8(sys.readAll()) << '\n';
+                ts << "# from " << sys.fileName() << '\n' << QString::fromUtf8(sys.readAll()) << '\n';
                 break;
             }
         }

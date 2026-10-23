@@ -222,11 +222,11 @@ void SoundMenu::updateIcon()
     QAction *a = m_menu->menuAction();
     if (!m_available) {
         a->setIcon(speakerIcon(QColor(0x7a, 0x7a, 0x82), 16, 0, true));
-        a->setToolTip(QStringLiteral("Звуковой сервер недоступен"));
+        a->setToolTip(tr("Sound server is not available"));
         return;
     }
     a->setIcon(speakerIcon(fg, 16, levelFor(m_volume), m_muted));
-    a->setToolTip(m_muted ? QStringLiteral("Звук выключен") : QStringLiteral("Громкость: %1%").arg(m_volume));
+    a->setToolTip(m_muted ? tr("Sound is muted") : tr("Volume: %1%").arg(m_volume));
 }
 
 void SoundMenu::setVolume(int percent)
@@ -298,9 +298,9 @@ void SoundMenu::rebuild()
     m_muteAction = nullptr;
 
     if (!m_available) {
-        m_menu->addAction(QStringLiteral("Звуковой сервер недоступен"))->setEnabled(false);
+        m_menu->addAction(tr("Sound server is not available"))->setEnabled(false);
     } else {
-        m_muteAction = m_menu->addAction(QStringLiteral("Выключить звук"));
+        m_muteAction = m_menu->addAction(tr("Mute"));
         m_muteAction->setCheckable(true);
         m_muteAction->setChecked(m_muted);
         connect(m_muteAction, &QAction::triggered, this, [this] { toggleMute(); });
@@ -339,7 +339,7 @@ void SoundMenu::rebuild()
     m_menu->addSeparator();
     const QList<Sink> sinks = m_available ? listSinks() : QList<Sink>();
     if (sinks.size() > 1) {
-        QMenu *out = m_menu->addMenu(QStringLiteral("Устройство вывода"));
+        QMenu *out = m_menu->addMenu(tr("Output Device"));
         auto *group = new QActionGroup(out);
         for (const Sink &s : sinks) {
             QAction *a = out->addAction(s.description.isEmpty() ? s.name : s.description);
@@ -353,7 +353,7 @@ void SoundMenu::rebuild()
             });
         }
     }
-    m_menu->addAction(QStringLiteral("Параметры звука…"), this, &SoundMenu::openSettings);
+    m_menu->addAction(tr("Sound Settings…"), this, &SoundMenu::openSettings);
 }
 
 void SoundMenu::openSettings()
@@ -499,14 +499,14 @@ void SoundMenu::addPlayers()
             return b;
         };
         const bool playing = unwrapVariant(player.value(QStringLiteral("PlaybackStatus"))).toString() == QLatin1String("Playing");
-        button(QStyle::SP_MediaSkipBackward, QStringLiteral("Предыдущий"), QStringLiteral("Previous"),
+        button(QStyle::SP_MediaSkipBackward, tr("Previous"), QStringLiteral("Previous"),
                unwrapVariant(player.value(QStringLiteral("CanGoPrevious"))).toBool());
         QToolButton *play = button(playing ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay,
-                                   playing ? QStringLiteral("Пауза") : QStringLiteral("Воспроизвести"),
+                                   playing ? tr("Pause") : tr("Play"),
                                    QStringLiteral("PlayPause"),
                                    unwrapVariant(player.value(QStringLiteral("CanPlay"))).toBool()
                                        || unwrapVariant(player.value(QStringLiteral("CanPause"))).toBool());
-        button(QStyle::SP_MediaSkipForward, QStringLiteral("Следующий"), QStringLiteral("Next"),
+        button(QStyle::SP_MediaSkipForward, tr("Next"), QStringLiteral("Next"),
                unwrapVariant(player.value(QStringLiteral("CanGoNext"))).toBool());
         row->addStretch();
 
@@ -521,7 +521,7 @@ void SoundMenu::addPlayers()
                     const bool on = unwrapVariant(props.value(QStringLiteral("PlaybackStatus"))).toString()
                                     == QLatin1String("Playing");
                     pp->setIcon(QApplication::style()->standardIcon(on ? QStyle::SP_MediaPause : QStyle::SP_MediaPlay));
-                    pp->setToolTip(on ? QStringLiteral("Пауза") : QStringLiteral("Воспроизвести"));
+                    pp->setToolTip(on ? tr("Pause") : tr("Play"));
                     if (trackLabel)
                         trackLabel->setText(mprisTrackText(props));
                 });
