@@ -8,7 +8,7 @@
 
 #include "qwayland-wlr-foreign-toplevel-management-unstable-v1.h"
 
-// Одно окно другого приложения (zwlr_foreign_toplevel_handle_v1).
+// A window of another application (zwlr_foreign_toplevel_handle_v1).
 class Toplevel : public QObject, public QtWayland::zwlr_foreign_toplevel_handle_v1
 {
     Q_OBJECT
@@ -22,13 +22,13 @@ public:
     bool isMaximized() const { return m_maximized; }
     bool isFullscreen() const { return m_fullscreen; }
     bool isMinimized() const { return m_minimized; }
-    bool hasParent() const { return m_hasParent; }   // диалог или другое подчинённое окно
-    quint64 sequence() const { return m_sequence; }  // порядок появления, растёт
-    bool isInitial() const { return m_initial; }     // было открыто ещё до запуска панели
-    bool isReady() const { return m_ready; }         // пришёл хотя бы один done
+    bool hasParent() const { return m_hasParent; }   // a dialog or another child window
+    quint64 sequence() const { return m_sequence; }  // order of appearance, increasing
+    bool isInitial() const { return m_initial; }     // was open before the panel started
+    bool isReady() const { return m_ready; }         // at least one done event arrived
 
 Q_SIGNALS:
-    void changed();   // пришёл done — состояние консистентно
+    void changed();   // done arrived: the state is consistent
     void closed();
 
 protected:
@@ -47,8 +47,8 @@ private:
     quint64 m_sequence = 0;
 };
 
-// Следит за окнами через wlr-foreign-toplevel-management и сообщает об активном.
-// Поддерживают: sway, Hyprland, labwc, river, wayfire, niri и др. (KWin и Mutter — нет).
+// Tracks windows via wlr-foreign-toplevel-management and reports the active one.
+// Supported by sway, Hyprland, labwc, river, wayfire, niri and others (not KWin or Mutter).
 class ToplevelManager : public QWaylandClientExtensionTemplate<ToplevelManager>,
                         public QtWayland::zwlr_foreign_toplevel_manager_v1
 {
@@ -57,16 +57,16 @@ public:
     ToplevelManager();
     ~ToplevelManager() override;
 
-    // Последнее активное окно. Не сбрасывается, когда фокус уходит в саму панель
-    // (layer-shell поверхность) или на пустой рабочий стол — иначе меню исчезало бы при клике.
+    // The last active window. Not reset when the focus moves to the panel itself
+    // (a layer-shell surface) or to the empty desktop, otherwise the menu would vanish on click.
     Toplevel *active() const { return m_active; }
 
     QList<Toplevel *> toplevels() const;
 
 Q_SIGNALS:
     void activeToplevelChanged();
-    void toplevelAdded(Toplevel *toplevel);    // после первого done: app_id и родитель известны
-    void toplevelRemoved(Toplevel *toplevel);  // перед удалением объекта
+    void toplevelAdded(Toplevel *toplevel);    // after the first done: app_id and parent are known
+    void toplevelRemoved(Toplevel *toplevel);  // before the object is deleted
 
 protected:
     void zwlr_foreign_toplevel_manager_v1_toplevel(::zwlr_foreign_toplevel_handle_v1 *toplevel) override;
@@ -76,5 +76,5 @@ private:
     QPointer<Toplevel> m_active;
     QList<QPointer<Toplevel>> m_toplevels;
     quint64 m_nextSequence = 0;
-    qint64 m_activatedAt = -1; // мс; окна, пришедшие сразу после привязки, — уже открытые
+    qint64 m_activatedAt = -1; // ms; windows arriving right after binding are already open
 };

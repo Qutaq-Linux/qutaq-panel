@@ -18,7 +18,7 @@
 
 #include <cmath>
 
-// Цвета самой панели (см. panel.cpp): кнопки должны быть видны на ней.
+// Colors of the panel itself (see panel.cpp): buttons must be visible on it.
 static const QColor kPanelBg(0x18, 0x19, 0x1e);
 static const QColor kPanelFg(0xe8, 0xe8, 0xec);
 
@@ -28,7 +28,7 @@ QColor parseThemeColor(const QString &value, const QColor &fallback)
     if (v.isEmpty())
         return fallback;
     if (v.startsWith('#') && v.size() == 9) {
-        // labwc: #rrggbbaa; Qt понимает #aarrggbb — переставляем
+        // labwc: #rrggbbaa; Qt understands #aarrggbb, so reorder
         v = '#' + v.mid(7, 2) + v.mid(1, 6);
     }
     const QColor c = QColor::fromString(v);
@@ -53,7 +53,7 @@ static QString rcXmlPath()
     return QStringLiteral("/etc/xdg/labwc/rc.xml");
 }
 
-// Каталоги тем в порядке поиска labwc
+// Theme directories in labwc's search order
 static QStringList themeBases()
 {
     QStringList out;
@@ -67,7 +67,7 @@ static QStringList themeBases()
     return out;
 }
 
-// Относительная яркость (WCAG) — чтобы понять, видна ли кнопка на тёмной панели
+// Relative luminance (WCAG), to tell whether a button is visible on the dark panel
 static double luminance(const QColor &c)
 {
     auto ch = [](double v) { v /= 255.0; return v <= 0.03928 ? v / 12.92 : std::pow((v + 0.055) / 1.055, 2.4); };
@@ -80,7 +80,7 @@ static double contrast(const QColor &a, const QColor &b)
     return (qMax(la, lb) + 0.05) / (qMin(la, lb) + 0.05);
 }
 
-// Простые кнопки, если в теме картинок нет (встроенная тема labwc)
+// Simple buttons when the theme has no images (labwc's built-in theme)
 static QPixmap drawFallback(LabwcTheme::Button b, const QColor &color)
 {
     const qreal dpr = 2.0;
@@ -114,7 +114,7 @@ LabwcTheme::LabwcTheme(QObject *parent)
     m_watcher = new QFileSystemWatcher(this);
     m_reloadTimer = new QTimer(this);
     m_reloadTimer->setSingleShot(true);
-    m_reloadTimer->setInterval(300); // редакторы сохраняют файл в несколько шагов
+    m_reloadTimer->setInterval(300); // editors save a file in several steps
     connect(m_reloadTimer, &QTimer::timeout, this, [this] {
         reload();
         Q_EMIT changed();
@@ -211,7 +211,7 @@ void LabwcTheme::findTheme()
                 if (m_dir.isEmpty())
                     m_dir = base + '/' + m_name;
             }
-    // Картинки labwc ищет в тех же каталогах: сначала все labwc/, потом все openbox-3/
+    // labwc looks for images in the same directories: all labwc/ first, then all openbox-3/
     for (const QString &sub : {QStringLiteral("labwc"), QStringLiteral("openbox-3")})
         for (const QString &base : bases)
             if (QFileInfo(base + '/' + m_name + '/' + sub).isDir())
@@ -246,7 +246,7 @@ QColor LabwcTheme::buttonColor(const QString &kind) const
         return themeColor;
     if (mode == QLatin1String("panel"))
         return kPanelFg;
-    // auto: цвет темы, если он виден на тёмной панели (у светлых тем кнопки тёмные — тогда светлые)
+    // auto: the theme color if it is visible on the dark panel (light themes have dark buttons, then use light ones)
     return contrast(themeColor, kPanelBg) >= 3.0 ? themeColor : kPanelFg;
 }
 
@@ -255,7 +255,7 @@ QPixmap LabwcTheme::loadButton(const QStringList &names, bool hover, const QColo
     *found = false;
     for (const QString &name : names) {
         const QString base = name + (hover ? QStringLiteral("_hover") : QString());
-        // png и svg — цветные картинки «как есть»
+        // png and svg are color images used as is
         for (const char *ext : {"png", "svg"}) {
             for (const QString &dir : m_iconDirs) {
                 const QString path = dir + '/' + base + QStringLiteral("-active.") + QLatin1String(ext);
@@ -273,7 +273,7 @@ QPixmap LabwcTheme::loadButton(const QStringList &names, bool hover, const QColo
                 }
             }
         }
-        // xbm — одноцветная маска, красится цветом кнопки
+        // xbm is a one-color mask painted with the button color
         for (const QString &dir : m_iconDirs) {
             const QString path = dir + '/' + base + QStringLiteral(".xbm");
             if (!QFileInfo::exists(path))
@@ -307,7 +307,7 @@ void LabwcTheme::watch()
         if (QFileInfo::exists(p))
             paths << p;
     if (QFileInfo(configDir()).isDir())
-        paths << configDir(); // ловит создание файлов и сохранение «через замену»
+        paths << configDir(); // catches file creation and save-by-replace
     paths << m_iconDirs;
     if (!paths.isEmpty())
         m_watcher->addPaths(paths);

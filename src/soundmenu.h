@@ -11,25 +11,25 @@ class QProcess;
 class QSlider;
 class QTimer;
 
-// Индикатор звука слева от часов — как в Ubuntu Unity:
+// Sound indicator left of the clock, as in Ubuntu Unity:
 //
-//   ☐ Выключить звук
+//   ☐ Mute
 //   🔈 ━━━━━━●━━━━ 🔊
 //   ─────────────
-//   Проигрыватель (MPRIS): название, трек, ⏮ ⏯ ⏭
+//   Player (MPRIS): name, track, ⏮ ⏯ ⏭
 //   ─────────────
-//   Устройство вывода ▸     (если устройств больше одного)
-//   Параметры звука…
+//   Output Device ▸         (if there is more than one device)
+//   Sound Settings…
 //
-// На значке: колесо мыши — громкость, средняя кнопка — выключить/включить звук.
+// On the icon: the mouse wheel changes the volume, the middle button mutes/unmutes.
 //
-// Звук — через `pactl` (работает и с PipeWire, и с PulseAudio), изменения отслеживаются
-// через `pactl subscribe`. Проигрыватели — через MPRIS (org.mpris.MediaPlayer2.*).
+// Sound goes through `pactl` (works with both PipeWire and PulseAudio); changes are tracked
+// with `pactl subscribe`. Players go through MPRIS (org.mpris.MediaPlayer2.*).
 //
-// Настройки: ~/.config/qutaq-panel/panel.conf, секция [sound]:
-//   step=5             шаг громкости колесом мыши, %
-//   maxVolume=100      верхний предел громкости, %
-//   settingsCommand=   «Параметры звука…»; пусто — pavucontrol, pavucontrol-qt и т. п.
+// Settings: ~/.config/qutaq-panel/panel.conf, section [sound]:
+//   step=5             volume step for the mouse wheel, %
+//   maxVolume=100      upper volume limit, %
+//   settingsCommand=   "Sound Settings…"; empty means pavucontrol, pavucontrol-qt and the like
 class SoundMenu : public QObject
 {
     Q_OBJECT
@@ -78,7 +78,7 @@ private:
     QString m_defaultSink;
 };
 
-// Значок динамика: level 0–3 (число «волн»), muted — с крестиком.
+// Speaker icon: level 0–3 (number of "waves"), muted adds a cross.
 class QIcon;
 class QColor;
 QIcon speakerIcon(const QColor &color, int size, int level, bool muted);

@@ -144,7 +144,7 @@ static bool reportError(const QDBusMessage &r, const QString &what)
     return true;
 }
 
-// ---------- сохранённые соединения ----------
+// ---------- saved connections ----------
 
 struct SavedConnection {
     QString path;
@@ -187,7 +187,7 @@ static QList<SavedConnection> savedConnections()
 
 struct ActiveConnection {
     QString path;
-    QString connection; // путь сохранённого соединения
+    QString connection; // path of the saved connection
     QString id;
     QString type;
     bool vpn = false;
@@ -222,7 +222,7 @@ static int wifiLevel(int strength)
     return 4;
 }
 
-// ---------- значки ----------
+// ---------- icons ----------
 
 QIcon networkIcon(const QColor &color, int size, int kind, int level, bool dim, bool vpn)
 {
@@ -239,7 +239,7 @@ QIcon networkIcon(const QColor &color, int size, int kind, int level, bool dim, 
             c.setAlphaF(0.35);
 
         if (kind == 2) {
-            // Веер Wi-Fi: точка и четыре дуги, неактивные — бледные
+            // Wi-Fi fan: a dot and four arcs, inactive ones pale
             const QPointF o(8 * u, 13.5 * u);
             p.setPen(Qt::NoPen);
             p.setBrush(c);
@@ -254,7 +254,7 @@ QIcon networkIcon(const QColor &color, int size, int kind, int level, bool dim, 
                 p.drawArc(QRectF(o.x() - r, o.y() - r, 2 * r, 2 * r), 50 * 16, 80 * 16);
             }
         } else {
-            // Две стрелки вверх и вниз — как значок проводной сети в Unity
+            // Two arrows, up and down, like the wired network icon in Unity
             p.setPen(QPen(c, 1.5 * u, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
             p.setBrush(Qt::NoBrush);
             p.drawLine(QPointF(5 * u, 13.5 * u), QPointF(5 * u, 2.5 * u));
@@ -262,14 +262,14 @@ QIcon networkIcon(const QColor &color, int size, int kind, int level, bool dim, 
             p.drawLine(QPointF(11 * u, 2.5 * u), QPointF(11 * u, 13.5 * u));
             p.drawPolyline(QPolygonF({QPointF(8.2 * u, 10.7 * u), QPointF(11 * u, 13.5 * u), QPointF(13.8 * u, 10.7 * u)}));
             if (kind == 0) {
-                // Сети нет — косая черта
+                // No network: a slash
                 QColor cs = color;
                 p.setPen(QPen(cs, 1.5 * u, Qt::SolidLine, Qt::RoundCap));
                 p.drawLine(QPointF(2 * u, 14 * u), QPointF(14 * u, 2 * u));
             }
         }
         if (vpn) {
-            // Замочек в правом нижнем углу (VPN или защищённая сеть)
+            // A padlock in the bottom right corner (VPN or a secured network)
             const QRectF body(10.5 * u, 10.5 * u, 5 * u, 4.5 * u);
             p.setPen(Qt::NoPen);
             p.setBrush(color);
@@ -296,10 +296,10 @@ NetworkMenu::NetworkMenu(QObject *parent)
 
     m_updateTimer = new QTimer(this);
     m_updateTimer->setSingleShot(true);
-    m_updateTimer->setInterval(300); // NetworkManager шлёт пачки сигналов
+    m_updateTimer->setInterval(300); // NetworkManager sends bursts of signals
     connect(m_updateTimer, &QTimer::timeout, this, &NetworkMenu::updateIcon);
 
-    // Любое изменение свойств или состояния у NetworkManager и его устройств
+    // Any change of properties or state of NetworkManager and its devices
     QDBusConnection b = bus();
     b.connect(kNM, QString(), kProps, QStringLiteral("PropertiesChanged"), this, SLOT(onNmSignal(QDBusMessage)));
     b.connect(kNM, QString(), kDevice, QStringLiteral("StateChanged"), this, SLOT(onNmSignal(QDBusMessage)));
@@ -346,7 +346,7 @@ void NetworkMenu::updateIcon()
     for (const ActiveConnection &c : active)
         if (c.path == primary)
             main = &c;
-    if (!main) // основного нет (ещё подключается) — берём любое не-VPN
+    if (!main) // no primary one (still connecting): take any non-VPN
         for (const ActiveConnection &c : active)
             if (!c.vpn)
                 main = &c;
@@ -380,7 +380,7 @@ void NetworkMenu::updateIcon()
     a->setToolTip(tip);
 }
 
-// ---------- меню ----------
+// ---------- menu ----------
 
 static QAction *addHeader(QMenu *menu, const QString &text)
 {
@@ -490,7 +490,7 @@ void NetworkMenu::addWiredSection(const QString &dev)
         });
     }
     if (available.isEmpty() && state == DevDisconnected) {
-        // Профиля нет — NetworkManager создаст его сам
+        // No profile: NetworkManager will create one itself
         m_menu->addAction(tr("Connect"), this, [dev] {
             reportError(nmCall(kNMPath, kNM, QStringLiteral("ActivateConnection"),
                                {QVariant::fromValue(QDBusObjectPath(QStringLiteral("/"))), QVariant::fromValue(QDBusObjectPath(dev)),
@@ -517,7 +517,7 @@ void NetworkMenu::addWifiSection(const QString &dev)
         return;
     }
 
-    // Обновить список сетей к следующему открытию меню
+    // Refresh the network list for the next time the menu opens
     QDBusMessage scan = QDBusMessage::createMethodCall(kNM, dev, kWireless, QStringLiteral("RequestScan"));
     scan << QVariantMap();
     bus().call(scan, QDBus::NoBlock);
@@ -537,13 +537,13 @@ void NetworkMenu::addWifiSection(const QString &dev)
         activeSsid = getProp(activeAp, kAP, QStringLiteral("Ssid")).toByteArray();
     const QList<SavedConnection> saved = savedConnections();
 
-    // Одна строка на сеть (SSID) — по самой сильной точке доступа
+    // One row per network (SSID), from the strongest access point
     QHash<QByteArray, Net> bySsid;
     for (const QString &ap : toPaths(getProp(dev, kWireless, QStringLiteral("AccessPoints")))) {
         const QVariantMap a = getAll(ap, kAP);
         const QByteArray ssid = unwrap(a.value(QStringLiteral("Ssid"))).toByteArray();
         if (ssid.isEmpty())
-            continue; // скрытая сеть
+            continue; // hidden network
         Net n;
         n.ap = ap;
         n.ssid = QString::fromUtf8(ssid);
@@ -551,7 +551,7 @@ void NetworkMenu::addWifiSection(const QString &dev)
         const uint wpa = unwrap(a.value(QStringLiteral("WpaFlags"))).toUInt();
         const uint rsn = unwrap(a.value(QStringLiteral("RsnFlags"))).toUInt();
         n.secured = wpa || rsn || (unwrap(a.value(QStringLiteral("Flags"))).toUInt() & 0x1);
-        n.sae = (rsn & 0x400) && !(rsn & 0x100); // только WPA3-Personal
+        n.sae = (rsn & 0x400) && !(rsn & 0x100); // WPA3-Personal only
         n.active = !activeSsid.isEmpty() && ssid == activeSsid;
         n.saved = std::any_of(saved.cbegin(), saved.cend(), [&](const SavedConnection &c) { return c.ssid == ssid; });
         auto it = bySsid.find(ssid);
@@ -623,7 +623,7 @@ void NetworkMenu::addWifiSection(const QString &dev)
 
 void NetworkMenu::connectToAccessPoint(const QString &dev, const QString &ap, const QString &ssid, bool secured, bool sae)
 {
-    // Есть сохранённое соединение — просто включить его
+    // There is a saved connection: just activate it
     for (const SavedConnection &c : savedConnections()) {
         if (c.type == QLatin1String("802-11-wireless") && c.ssid == ssid.toUtf8()) {
             reportError(nmCall(kNMPath, kNM, QStringLiteral("ActivateConnection"),
@@ -633,7 +633,7 @@ void NetworkMenu::connectToAccessPoint(const QString &dev, const QString &ap, co
             return;
         }
     }
-    // Новая сеть: остальное NetworkManager возьмёт из точки доступа
+    // A new network: NetworkManager takes the rest from the access point
     NMSettings s;
     if (secured) {
         bool ok = false;
@@ -706,7 +706,7 @@ void NetworkMenu::openEditor(const QStringList &extraArgs)
     QProcess::startDetached(program, args);
 }
 
-// ---------- сведения о соединении ----------
+// ---------- connection information ----------
 
 static QString prefixToMask(int prefix)
 {

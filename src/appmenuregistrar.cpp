@@ -106,8 +106,8 @@ void AppMenuRegistrar::RegisterWindow(uint windowId, const QDBusObjectPath &menu
     e.names = processNames(e.pid);
     e.serial = ++m_serial;
 
-    // Одно окно — одна запись: если тот же процесс перерегистрирует тот же windowId,
-    // старую запись выбрасываем.
+    // One window, one entry: if the same process re-registers the same windowId,
+    // drop the old entry.
     for (auto it = m_entries.begin(); it != m_entries.end();) {
         if (it->service == service && it->windowId == windowId && windowId != 0)
             it = m_entries.erase(it);

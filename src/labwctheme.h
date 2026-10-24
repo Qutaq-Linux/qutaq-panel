@@ -9,12 +9,12 @@
 class QFileSystemWatcher;
 class QTimer;
 
-// Читает настройки labwc, нужные панели:
-//   - имя темы и <maximizedDecoration> из ~/.config/labwc/rc.xml;
-//   - картинки кнопок окна и их цвета из темы — так же, как их ищет сам labwc
-//     (<тема>/labwc/, затем <тема>/openbox-3/; форматы png, svg, xbm; *_hover — при наведении);
-//   - переопределения из ~/.config/labwc/themerc-override.
-// Следит за этими файлами и сообщает об изменениях (например, после смены темы в rc.xml).
+// Reads the labwc settings the panel needs:
+//   - the theme name and <maximizedDecoration> from ~/.config/labwc/rc.xml;
+//   - window button images and colors from the theme, looked up the same way labwc does
+//     (<theme>/labwc/, then <theme>/openbox-3/; png, svg, xbm formats; *_hover on hover);
+//   - overrides from ~/.config/labwc/themerc-override.
+// Watches these files and reports changes (for example, after the theme is changed in rc.xml).
 class LabwcTheme : public QObject
 {
     Q_OBJECT
@@ -24,11 +24,11 @@ public:
     explicit LabwcTheme(QObject *parent = nullptr);
 
     QString themeName() const { return m_name; }
-    QString themeDir() const { return m_dir; }          // найденный каталог темы (пусто — встроенная)
+    QString themeDir() const { return m_dir; }          // the theme directory found (empty: built-in theme)
     bool maximizedWithoutTitlebar() const { return m_maxNoTitle; } // <maximizedDecoration>none
 
-    // Картинка кнопки для панели. hover — вариант при наведении (если в теме его нет,
-    // возвращается обычная, а hasHoverImage() = false — тогда панель рисует подложку сама).
+    // Button image for the panel. hover: the hover variant (if the theme has none, the normal
+    // image is returned and hasHoverImage() is false, so the panel draws the highlight itself).
     QPixmap button(Button b, bool hover) const;
     bool hasHoverImage(Button b) const { return m_hoverFromTheme.value(b); }
     QColor hoverBackground() const { return m_hoverBg; }
@@ -47,9 +47,9 @@ private:
 
     QString m_name;
     QString m_dir;
-    QStringList m_iconDirs;      // <тема>/labwc, <тема>/openbox-3 — где искать картинки
+    QStringList m_iconDirs;      // <theme>/labwc, <theme>/openbox-3: where to look for images
     bool m_maxNoTitle = false;
-    QHash<QString, QString> m_rc; // ключи themerc
+    QHash<QString, QString> m_rc; // themerc keys
     QColor m_hoverBg;
 
     QHash<int, QPixmap> m_normal, m_hover;
@@ -59,5 +59,5 @@ private:
     QTimer *m_reloadTimer = nullptr;
 };
 
-// Цвет из themerc: "#rrggbb", "#rrggbbaa" (альфа в конце, как в labwc), "#rgb" или имя цвета.
+// Color from themerc: "#rrggbb", "#rrggbbaa" (alpha last, as in labwc), "#rgb" or a color name.
 QColor parseThemeColor(const QString &value, const QColor &fallback = QColor());

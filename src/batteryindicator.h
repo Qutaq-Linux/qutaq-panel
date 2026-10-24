@@ -8,23 +8,23 @@ class QAction;
 class QMenu;
 class QTimer;
 
-// Индикатор питания, как indicator-power в Ubuntu Unity:
+// Power indicator, like indicator-power in Ubuntu Unity:
 //
-//   Аккумулятор        85% (2 ч 10 мин до разряда)
-//   Мышь MX Master     40%            ← периферия с батареей (Bluetooth и др.)
+//   Battery            85% (2 h 10 min remaining)
+//   Mouse MX Master    40%            ← peripherals with a battery (Bluetooth etc.)
 //   ─────────────
-//   ☐ Показывать процент на панели
-//   ☐ Показывать оставшееся время
+//   ☐ Show percentage in the panel
+//   ☐ Show time remaining
 //   ─────────────
-//   Параметры электропитания…
+//   Power Settings…
 //
-// Источник — UPower (org.freedesktop.UPower), он есть и на x86-64, и на ARM64.
-// Без UPower — напрямую /sys/class/power_supply (*/type = Battery).
-// Индикатор скрыт, если батарей нет (обычный ПК без беспроводной периферии).
-// При разряде до 10% и 5% — уведомление (org.freedesktop.Notifications).
+// Source: UPower (org.freedesktop.UPower), available on both x86-64 and ARM64.
+// Without UPower: /sys/class/power_supply directly (*/type = Battery).
+// Hidden when there are no batteries (a desktop PC without wireless peripherals).
+// Notification at 10% and 5% (org.freedesktop.Notifications).
 //
-// Настройки, секция [battery]: show=auto|always|never, showPercentage, showTime,
-// settingsCommand (пусто — xfce4-power-manager-settings и т. п.).
+// Settings, section [battery]: show=auto|always|never, showPercentage, showTime,
+// settingsCommand (empty: xfce4-power-manager-settings and the like).
 class BatteryIndicator : public QObject
 {
     Q_OBJECT
@@ -33,17 +33,17 @@ public:
     ~BatteryIndicator() override;
 
     QMenu *menu() const { return m_menu; }
-    QAction *labelAction() const { return m_label; } // процент/время рядом со значком
+    QAction *labelAction() const { return m_label; } // percentage/time next to the icon
     bool isShown() const { return m_shown; }
 
     struct Device {
         QString name;
-        int kind = 0;          // тип UPower: 2 — батарея ноутбука, 5 — мышь, 6 — клавиатура…
+        int kind = 0;          // UPower type: 2 laptop battery, 5 mouse, 6 keyboard…
         double percent = -1;
-        int state = 0;         // 1 заряжается, 2 разряжается, 3 пуст, 4 заряжен, 5/6 ожидание
-        qint64 toEmpty = 0;    // секунды
+        int state = 0;         // 1 charging, 2 discharging, 3 empty, 4 full, 5/6 pending
+        qint64 toEmpty = 0;    // seconds
         qint64 toFull = 0;
-        bool powerSupply = false; // питает компьютер (а не мышь)
+        bool powerSupply = false; // powers the computer (not a mouse)
     };
 
 Q_SIGNALS:
@@ -70,5 +70,5 @@ private:
 
 class QIcon;
 class QColor;
-// Значок батареи: percent 0–100, charging — молния, empty — восклицательный знак
+// Battery icon: percent 0–100, charging adds a bolt, empty an exclamation mark
 QIcon batteryIcon(const QColor &color, int size, double percent, bool charging, bool full);
