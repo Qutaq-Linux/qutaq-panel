@@ -14,8 +14,8 @@ class QTimer;
 class Toplevel;
 class ToplevelManager;
 
-// Связывает три источника: активное окно (Wayland), регистратор меню (D-Bus)
-// и импортёр меню выбранного приложения. Панели только отображают результат.
+// Ties three sources together: the active window (Wayland), the menu registrar (D-Bus)
+// and the menu importer of the chosen application. Panels only display the result.
 class MenuController : public QObject
 {
     Q_OBJECT
@@ -24,20 +24,20 @@ public:
     bool start();
 
     QString appName() const { return m_appName; }
-    QMenu *windowMenu() const { return m_windowMenu; }   // «Свернуть / Развернуть / Закрыть»
-    QList<QAction *> menuActions() const;                 // верхний уровень меню приложения
+    QMenu *windowMenu() const { return m_windowMenu; }   // "Minimize / Maximize / Close"
+    QList<QAction *> menuActions() const;                 // top level of the application menu
     bool hasToplevelTracking() const;
-    Toplevel *activeWindow() const;                       // последнее активное окно (или nullptr)
+    Toplevel *activeWindow() const;                       // the last active window (or nullptr)
 
-    // Для кнопок окна в панели (как у развёрнутого окна в Unity)
-    bool activeMaximized() const;                         // развёрнуто, не свёрнуто, не во весь экран
+    // For the window buttons in the panel (like a maximized window in Unity)
+    bool activeMaximized() const;                         // maximized, not minimized, not full screen
     void closeActive();
     void minimizeActive();
     void restoreActive();
 
 Q_SIGNALS:
     void changed();
-    void activeWindowChanged(); // другое окно или изменилось его состояние (развёрнуто и т. п.)
+    void activeWindowChanged(); // another window, or its state changed (maximized etc.)
 
 private:
     void reevaluate();
@@ -57,25 +57,25 @@ private:
     QMenu *m_windowMenu = nullptr;
     QString m_appName;
     QString m_lastAppId;
-    QList<MenuEntry> m_candidates;   // подходящие меню, лучшее первым
+    QList<MenuEntry> m_candidates;   // matching menus, best first
     int m_candidateIndex = -1;
     QStringList m_candidateKeys;
     QString m_importerKey;
 
-    // Привязка окон к объектам меню на шине (см. menucontroller.cpp)
-    QHash<Toplevel *, QString> m_pairs;      // окно → MenuEntry::key()
-    QList<QPointer<Toplevel>> m_pending;     // ждут привязки
-    QPointer<Toplevel> m_lastPaired;         // последнее активное окно со своим меню
-    QSet<QString> m_emptyKeys;               // объекты меню без единого пункта
-    QSet<QString> m_filledKeys;              // объекты меню, где пункты есть
+    // Pairing windows with menu objects on the bus (see menucontroller.cpp)
+    QHash<Toplevel *, QString> m_pairs;      // window → MenuEntry::key()
+    QList<QPointer<Toplevel>> m_pending;     // waiting to be paired
+    QPointer<Toplevel> m_lastPaired;         // the last active window with its own menu
+    QSet<QString> m_emptyKeys;               // menu objects without a single item
+    QSet<QString> m_filledKeys;              // menu objects that do have items
     QTimer *m_pairTimer = nullptr;
     int m_pairAttempts = 0;
     QSet<QString> m_loggedKeys;
 
-    // Поиск меню на шине без регистрации (Qt под Wayland)
-    QHash<QString, QStringList> m_busNames;  // уникальное имя → имена процесса
-    QSet<QString> m_deadServices;            // не отвечают на Introspect
-    QSet<QString> m_answeredServices;        // хоть раз ответили
+    // Finding menus on the bus without registration (Qt on Wayland)
+    QHash<QString, QStringList> m_busNames;  // unique name → process names
+    QSet<QString> m_deadServices;            // don't answer Introspect
+    QSet<QString> m_answeredServices;        // answered at least once
     QHash<QString, int> m_silentStrikes;
     QString m_scanAppId;
     QList<MenuEntry> m_scanResult;
@@ -83,4 +83,4 @@ private:
     int m_rescanAttempts = 0;
 };
 
-QString desktopEntryName(const QString &appId); // Name= из .desktop, если найдётся
+QString desktopEntryName(const QString &appId); // Name= from the .desktop file, if found

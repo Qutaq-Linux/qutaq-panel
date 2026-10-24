@@ -15,20 +15,20 @@ class QAction;
 class QMenu;
 class QTimer;
 
-// Клиент GTK-меню: модель org.gtk.Menus + действия org.gtk.Actions.
-// Так меню публикуют GtkApplication (Mousepad, gedit…) и appmenu-gtk-module
-// (Thunar, xfce4-terminal и любые GtkMenuBar).
+// GTK menu client: an org.gtk.Menus model plus org.gtk.Actions actions.
+// This is how GtkApplication (Mousepad, gedit…) and appmenu-gtk-module
+// (Thunar, xfce4-terminal and any GtkMenuBar) publish their menus.
 //
-// Пути действий по префиксу:
-//   unity.* — на том же объекте, что и меню (appmenu-gtk-module)
-//   app.*   — <база>             (GtkApplication)
-//   win.*   — <база>/window/<N>  (GtkApplicationWindow)
-// где <база> — путь меню без хвоста /menus/menubar[/N].
+// Action paths by prefix:
+//   unity.* on the same object as the menu (appmenu-gtk-module)
+//   app.*   <base>             (GtkApplication)
+//   win.*   <base>/window/<N>  (GtkApplicationWindow)
+// where <base> is the menu path without the trailing /menus/menubar[/N].
 class GMenuImporter : public MenuImporter
 {
     Q_OBJECT
 public:
-    // winPath — объект действий win.* нужного окна GtkApplication; пусто — взять самое новое окно.
+    // winPath: the object with the win.* actions of the right GtkApplication window; empty means the newest window.
     GMenuImporter(const QString &service, const QString &menuPath, const QString &winPath,
                   QObject *parent = nullptr);
     ~GMenuImporter() override;
@@ -40,7 +40,7 @@ private Q_SLOTS:
     void onMenusChanged(const QDBusMessage &msg);
 
 private:
-    using Key = QPair<uint, uint>; // (группа, меню)
+    using Key = QPair<uint, uint>; // (group, menu)
 
     struct ActionInfo {
         bool enabled = true;
@@ -49,7 +49,7 @@ private:
     };
     struct SubmenuInfo {
         Key key;
-        QString submenuAction; // "unity.-File-0" и т.п. — включаем перед показом
+        QString submenuAction; // "unity.-File-0" etc., enabled before showing
     };
 
     bool subscribe(const QList<uint> &groups);
@@ -77,11 +77,11 @@ private:
 
     QHash<Key, QList<QVariantMap>> m_model;
     QSet<uint> m_rootGroups;
-    QHash<QString, QString> m_actionPaths;   // префикс → путь объекта
-    QHash<QString, ActionInfo> m_actions;    // "win.save" → состояние
+    QHash<QString, QString> m_actionPaths;   // prefix → object path
+    QHash<QString, ActionInfo> m_actions;    // "win.save" → state
 
     QHash<QMenu *, SubmenuInfo> m_submenus;
-    QHash<QMenu *, QSet<Key>> m_usedKeys;    // какие части модели отображает меню
+    QHash<QMenu *, QSet<Key>> m_usedKeys;    // which parts of the model a menu shows
     QHash<QMenu *, QList<QPointer<QObject>>> m_owned;
-    QSet<Key> m_skipSections;                // дубликаты в корне (см. buildRoot)
+    QSet<Key> m_skipSections;                // duplicates in the root (see buildRoot)
 };

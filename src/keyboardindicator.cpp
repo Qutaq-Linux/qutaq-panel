@@ -34,7 +34,7 @@ static QString overridePath()
     return labwcConfigDir() + QStringLiteral("/environment.d/") + QLatin1String(kOverrideName);
 }
 
-// KEY=value из файла окружения labwc (без кавычек — labwc их тоже не разбирает)
+// KEY=value from a labwc environment file (no quotes: labwc doesn't parse them either)
 static QHash<QString, QString> readEnvFile(const QString &path)
 {
     QHash<QString, QString> out;
@@ -53,7 +53,7 @@ static QHash<QString, QString> readEnvFile(const QString &path)
     return out;
 }
 
-// Порядок как у labwc: environment, затем environment.d/*.env по алфавиту
+// Same order as labwc: environment, then environment.d/*.env alphabetically
 static QHash<QString, QString> userEnvironment(bool withOverride)
 {
     QHash<QString, QString> env = readEnvFile(labwcConfigDir() + QStringLiteral("/environment"));
@@ -69,14 +69,14 @@ static QHash<QString, QString> userEnvironment(bool withOverride)
     return env;
 }
 
-// Короткие и полные названия раскладок из базы xkeyboard-config
+// Short and full layout names from the xkeyboard-config database
 struct XkbNames {
     QString shortName, description;
 };
 
 static QHash<QString, XkbNames> xkbDatabase()
 {
-    static QHash<QString, XkbNames> db; // "us" и "us(dvorak)"
+    static QHash<QString, XkbNames> db; // "us" and "us(dvorak)"
     if (!db.isEmpty())
         return db;
     QFile f(QStringLiteral("/usr/share/X11/xkb/rules/evdev.xml"));
@@ -122,7 +122,7 @@ static QHash<QString, XkbNames> xkbDatabase()
     return db;
 }
 
-// Перевод названия из xkeyboard-config («Russian» → «Русская»), если он установлен
+// The name translated by xkeyboard-config ("Russian" → "Русская"), if available
 static QString translate(const QString &description)
 {
     static bool bound = false;
@@ -142,7 +142,7 @@ KeyboardIndicator::KeyboardIndicator(QObject *parent)
     load();
     rebuildMenu();
 
-    // Раскладки поменяли в файле environment — перечитать
+    // Layouts changed in the environment file: re-read
     auto *watcher = new QFileSystemWatcher(this);
     auto *timer = new QTimer(this);
     timer->setSingleShot(true);
@@ -178,7 +178,7 @@ void KeyboardIndicator::load()
     const QHash<QString, QString> base = userEnvironment(false);
     QString layouts = base.value(QStringLiteral("XKB_DEFAULT_LAYOUT"));
     QString variants = base.value(QStringLiteral("XKB_DEFAULT_VARIANT"));
-    if (layouts.isEmpty()) { // раскладка задана не в файлах, а в окружении сеанса
+    if (layouts.isEmpty()) { // the layout is set in the session environment, not in files
         layouts = qEnvironmentVariable("XKB_DEFAULT_LAYOUT");
         variants = qEnvironmentVariable("XKB_DEFAULT_VARIANT");
     }
@@ -200,14 +200,14 @@ void KeyboardIndicator::load()
         QString shortName = var.shortName.isEmpty() ? base.shortName : var.shortName;
         if (shortName.isEmpty())
             shortName = l.layout.left(2);
-        shortName[0] = shortName[0].toUpper(); // en → En, как в Unity
+        shortName[0] = shortName[0].toUpper(); // en → En, as in Unity
         l.shortName = shortName;
         const QString desc = var.description.isEmpty() ? base.description : var.description;
         l.description = desc.isEmpty() ? l.layout : translate(desc);
         m_layouts << l;
     }
 
-    // Текущая — первая в нашем файле, если он про тот же набор раскладок; иначе — первая
+    // The current one is the first in our file if it covers the same set of layouts; otherwise the first one
     m_current = 0;
     const QHash<QString, QString> mine = readEnvFile(overridePath());
     const QString first = mine.value(QStringLiteral("XKB_DEFAULT_LAYOUT")).section(',', 0, 0);
@@ -221,7 +221,7 @@ void KeyboardIndicator::load()
             if (m_layouts.at(i).layout == first && m_layouts.at(i).variant == firstVar)
                 m_current = i;
     } else if (QFileInfo::exists(overridePath())) {
-        QFile::remove(overridePath()); // список раскладок поменяли — наш файл устарел
+        QFile::remove(overridePath()); // the layout list changed, so our file is stale
     }
 }
 
@@ -240,16 +240,16 @@ bool KeyboardIndicator::isShown() const
     return m_layouts.size() > 1;
 }
 
-// environment.d labwc читает начиная с версии 0.7.2 (май 2024)
+// labwc reads environment.d since version 0.7.2 (May 2024)
 static bool labwcReadsEnvDir()
 {
     static int cached = -1;
     if (cached < 0) {
-        cached = 1; // не удалось узнать — считаем, что версия свежая
+        cached = 1; // could not find out: assume a recent version
         QProcess p;
         p.start(QStringLiteral("labwc"), {QStringLiteral("--version")});
         if (p.waitForFinished(2000)) {
-            // «labwc 0.7.1» или «labwc 0.9.2 (+xwayland +nls …)»
+            // "labwc 0.7.1" or "labwc 0.9.2 (+xwayland +nls …)"
             const QString out = QString::fromUtf8(p.readAllStandardOutput() + p.readAllStandardError());
             const QStringList v = out.section(' ', 1, 1).split('.');
             if (v.size() >= 3) {
@@ -281,11 +281,11 @@ void KeyboardIndicator::rebuildMenu()
     }
     m_menu->addSeparator();
     m_menu->addAction(tr("Configure Layouts…"), this, [] {
-        // Раскладки задаются в окружении labwc — открыть его в текстовом редакторе
+        // Layouts are set in the labwc environment: open it in a text editor
         const QString path = labwcConfigDir() + QStringLiteral("/environment");
         if (!QFileInfo::exists(path)) {
             QDir().mkpath(labwcConfigDir());
-            // Свой файл заслонит системный — начинаем с его копии
+            // A user file hides the system one, so start from a copy of it
             QByteArray content("# Keyboard layouts, for example:\n# XKB_DEFAULT_LAYOUT=us,ru\n");
             for (const QString &d : qEnvironmentVariable("XDG_CONFIG_DIRS", QStringLiteral("/etc/xdg")).split(':', Qt::SkipEmptyParts)) {
                 QFile sys(d + QStringLiteral("/labwc/environment"));
@@ -332,8 +332,8 @@ void KeyboardIndicator::Set(int index)
 
 void KeyboardIndicator::apply()
 {
-    // Тот же список, но текущая раскладка — первой. Остальные остаются в keymap,
-    // чтобы сочетания вроде Ctrl+C работали и в русской раскладке.
+    // The same list, with the current layout first. The others stay in the keymap
+    // so that shortcuts like Ctrl+C keep working in a Cyrillic layout too.
     QStringList layouts, variants;
     for (int k = 0; k < m_layouts.size(); ++k) {
         const Layout &l = m_layouts.at((m_current + k) % m_layouts.size());
@@ -346,9 +346,9 @@ void KeyboardIndicator::apply()
         QTextStream ts(&f);
         ts << "# Created by qutaq-panel: the current layout comes first.\n"
               "# Delete this file to restore the order from ~/.config/labwc/environment.\n";
-        // labwc читает только первый найденный файл environment (вместе с его environment.d):
-        // если у пользователя своего нет, наш файл заслонил бы системный /etc/xdg/labwc/environment —
-        // поэтому переносим его строки сюда.
+        // labwc reads only the first environment file it finds (with its environment.d):
+        // if the user has none, our file would hide the system /etc/xdg/labwc/environment,
+        // so copy its lines here.
         if (!QFileInfo::exists(labwcConfigDir() + QStringLiteral("/environment"))) {
             const QString dirs = qEnvironmentVariable("XDG_CONFIG_DIRS", QStringLiteral("/etc/xdg"));
             for (const QString &d : dirs.split(':', Qt::SkipEmptyParts)) {

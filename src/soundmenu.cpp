@@ -41,7 +41,7 @@ static QVariant setting(const QString &key, const QVariant &def)
     return s.value(QStringLiteral("sound/") + key, def);
 }
 
-// pactl с английским выводом (по-русски «Name:» стало бы «Имя:»)
+// pactl with English output (otherwise "Name:" would come out translated)
 static bool pactl(const QStringList &args, QString *out = nullptr, int timeoutMs = 1000)
 {
     QProcess p;
@@ -69,7 +69,7 @@ QIcon speakerIcon(const QColor &color, int size, int level, bool muted)
         p.setRenderHint(QPainter::Antialiasing);
         const qreal u = size / 16.0;
 
-        // Корпус динамика
+        // Speaker body
         QPainterPath body;
         body.moveTo(1.5 * u, 5.5 * u);
         body.lineTo(4.5 * u, 5.5 * u);
@@ -89,7 +89,7 @@ QIcon speakerIcon(const QColor &color, int size, int level, bool muted)
             p.drawLine(QPointF(10.5 * u, 5.5 * u), QPointF(14.5 * u, 10.5 * u));
             p.drawLine(QPointF(14.5 * u, 5.5 * u), QPointF(10.5 * u, 10.5 * u));
         } else {
-            // «Волны»: неактивные — полупрозрачные, как в Unity
+            // "Waves": inactive ones semi-transparent, as in Unity
             for (int i = 1; i <= 3; ++i) {
                 QColor c = color;
                 if (i > level)
@@ -128,7 +128,7 @@ SoundMenu::SoundMenu(QObject *parent)
     m_refreshTimer->setInterval(40);
     connect(m_refreshTimer, &QTimer::timeout, this, &SoundMenu::refresh);
 
-    // Перетаскивание ползунка даёт десятки значений в секунду — отправляем не чаще 25 раз.
+    // Dragging the slider produces dozens of values per second; send at most 25 per second.
     m_applyTimer = new QTimer(this);
     m_applyTimer->setSingleShot(true);
     m_applyTimer->setInterval(40);
@@ -163,12 +163,12 @@ void SoundMenu::startSubscribe()
         connect(m_subscribe, &QProcess::readyReadStandardOutput, this, [this] {
             while (m_subscribe->canReadLine()) {
                 const QByteArray line = m_subscribe->readLine();
-                // "Event 'change' on sink #47", "Event 'change' on server #-1" (сменилось устройство)
+                // "Event 'change' on sink #47", "Event 'change' on server #-1" (the device changed)
                 if (line.contains(" sink ") || line.contains(" server "))
                     m_refreshTimer->start();
             }
         });
-        // Звуковой сервер перезапустили (или его ещё нет) — переподключаемся.
+        // The sound server was restarted (or isn't running yet): reconnect.
         connect(m_subscribe, &QProcess::finished, this, [this] {
             QTimer::singleShot(3000, this, [this] {
                 refresh();
@@ -200,7 +200,7 @@ void SoundMenu::refresh()
         m_defaultSink = sink.trimmed();
     }
 
-    // Меню открыто — обновить его на месте
+    // The menu is open: update it in place
     if (m_slider && !m_slider->isSliderDown() && m_pendingVolume < 0) {
         const QSignalBlocker b(m_slider);
         m_slider->setValue(m_volume);
@@ -236,7 +236,7 @@ void SoundMenu::setVolume(int percent)
     m_pendingVolume = percent;
     if (!m_applyTimer->isActive())
         m_applyTimer->start();
-    // Значок — сразу, не дожидаясь ответа сервера
+    // Update the icon right away, without waiting for the server's reply
     m_volume = percent;
     updateIcon();
 }
@@ -246,7 +246,7 @@ void SoundMenu::changeVolume(int deltaPercent)
     if (!m_available)
         return;
     if (m_muted && deltaPercent > 0)
-        toggleMute(); // как в Unity: прибавить громкость — значит включить звук
+        toggleMute(); // as in Unity: raising the volume unmutes
     setVolume(m_volume + deltaPercent);
 }
 
@@ -280,7 +280,7 @@ QList<SoundMenu::Sink> SoundMenu::listSinks() const
     return out;
 }
 
-// ---------- меню ----------
+// ---------- menu ----------
 
 static QWidget *menuRow(QLayout *content, int leftIndent = 28)
 {
@@ -305,7 +305,7 @@ void SoundMenu::rebuild()
         m_muteAction->setChecked(m_muted);
         connect(m_muteAction, &QAction::triggered, this, [this] { toggleMute(); });
 
-        // Ползунок громкости между значками тихо/громко
+        // Volume slider between the quiet/loud icons
         const QColor fg = m_menu->palette().color(QPalette::WindowText);
         auto *row = new QHBoxLayout;
         row->setSpacing(8);
@@ -376,7 +376,7 @@ void SoundMenu::openSettings()
     QProcess::startDetached(program, args);
 }
 
-// ---------- проигрыватели (MPRIS) ----------
+// ---------- players (MPRIS) ----------
 
 static QVariantMap mprisProps(const QString &service, const QString &iface)
 {
@@ -403,7 +403,7 @@ static void mprisCall(const QString &service, const QString &iface, const QStrin
     QDBusConnection::sessionBus().call(msg, QDBus::NoBlock);
 }
 
-// «<b>Название</b><br>Исполнитель — Альбом» из свойств org.mpris.MediaPlayer2.Player
+// "<b>Title</b><br>Artist — Album" from the org.mpris.MediaPlayer2.Player properties
 static QString mprisTrackText(const QVariantMap &player)
 {
     QVariantMap meta;
@@ -447,7 +447,7 @@ void SoundMenu::addPlayers()
 
         m_menu->addSeparator();
 
-        // Заголовок: значок и имя программы; нажатие поднимает её окно
+        // Header: the program's icon and name; clicking raises its window
         QString identity = unwrapVariant(root.value(QStringLiteral("Identity"))).toString();
         if (identity.isEmpty())
             identity = service.mid(int(strlen(kMprisPrefix))).section('.', 0, 0);
@@ -460,7 +460,7 @@ void SoundMenu::addPlayers()
         if (unwrapVariant(root.value(QStringLiteral("CanRaise"))).toBool())
             connect(head, &QAction::triggered, this, [service] { mprisCall(service, kMprisRoot, QStringLiteral("Raise")); });
 
-        // Текущий трек
+        // Current track
         QPointer<QLabel> trackLabel;
         const QString trackText = mprisTrackText(player);
         if (!trackText.isEmpty()) {
@@ -477,7 +477,7 @@ void SoundMenu::addPlayers()
             trackLabel = label;
         }
 
-        // Кнопки ⏮ ⏯ ⏭
+        // ⏮ ⏯ ⏭ buttons
         if (player.isEmpty())
             continue;
         const bool canControl = unwrapVariant(player.value(QStringLiteral("CanControl"), true)).toBool();
@@ -510,7 +510,7 @@ void SoundMenu::addPlayers()
                unwrapVariant(player.value(QStringLiteral("CanGoNext"))).toBool());
         row->addStretch();
 
-        // После нажатия — обновить кнопку «пуск/пауза» и название трека, не закрывая меню
+        // After a click, update the play/pause button and the track title without closing the menu
         QPointer<QToolButton> pp = play;
         for (QToolButton *b : std::as_const(buttons)) {
             connect(b, &QToolButton::clicked, this, [pp, trackLabel, service] {

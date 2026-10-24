@@ -22,7 +22,7 @@
 #include <QProxyStyle>
 #include <QScreen>
 
-// Подчёркнутые мнемоники в панели выглядят шумно — не рисуем их (Alt-навигация работает).
+// Underlined mnemonics look noisy in the panel, so don't draw them (Alt navigation still works).
 class PanelStyle : public QProxyStyle
 {
 public:
@@ -34,8 +34,8 @@ public:
     }
 };
 
-// GTK описывает действия без параметра пустой сигнатурой "g", и QtDBus на каждое такое
-// действие пишет предупреждение. Это нормально, глушим только его.
+// GTK describes actions without a parameter with an empty signature "g", and QtDBus logs a warning
+// for each such action. That is harmless; silence just this one.
 static QtMessageHandler s_defaultHandler = nullptr;
 static void messageFilter(QtMsgType type, const QMessageLogContext &ctx, const QString &msg)
 {
@@ -44,8 +44,8 @@ static void messageFilter(QtMsgType type, const QMessageLogContext &ctx, const Q
     s_defaultHandler(type, ctx, msg);
 }
 
-// qutaq-panel --next-layout | --prev-layout — для горячей клавиши в rc.xml labwc:
-// просит уже запущенную панель переключить раскладку.
+// qutaq-panel --next-layout | --prev-layout, for a keybind in labwc's rc.xml:
+// asks the running panel to switch the layout.
 static int remoteCommand(int argc, char *argv[], const char *method)
 {
     QCoreApplication app(argc, argv);
@@ -60,20 +60,20 @@ static int remoteCommand(int argc, char *argv[], const char *method)
     return 0;
 }
 
-// Язык интерфейса: из настроек ([panel] language=ru|en|de|…), иначе системный (LANG).
-// Переводы встроены в программу (:/i18n); файлы .qm в ~/.local/share/qutaq-panel/translations
-// (или /usr/share/…) имеют приоритет — так переводчик проверяет свой перевод без пересборки.
+// UI language: from the settings ([panel] language=ru|en|de|…), otherwise the system one (LANG).
+// Translations are built into the program (:/i18n); .qm files in ~/.local/share/qutaq-panel/translations
+// (or /usr/share/…) take priority, so a translator can test a translation without rebuilding.
 static void setupTranslations(QApplication &app)
 {
     const QString lang = panelSetting(QStringLiteral("panel/language")).toString().trimmed();
     QLocale locale = QLocale::system();
     if (!lang.isEmpty() && lang != QLatin1String("auto")) {
         locale = QLocale(lang);
-        QLocale::setDefault(locale);                 // дата в часах — на том же языке
-        qputenv("LANGUAGE", lang.toUtf8());          // gettext: названия раскладок
+        QLocale::setDefault(locale);                 // the clock date uses the same language
+        qputenv("LANGUAGE", lang.toUtf8());          // gettext: layout names
     }
 
-    auto *qt = new QTranslator(&app); // кнопки стандартных диалогов Qt
+    auto *qt = new QTranslator(&app); // buttons of Qt's standard dialogs
     if (qt->load(locale, QStringLiteral("qtbase"), QStringLiteral("_"),
                  QLibraryInfo::path(QLibraryInfo::TranslationsPath)))
         app.installTranslator(qt);
@@ -104,9 +104,9 @@ int main(int argc, char *argv[])
             return remoteCommand(argc, argv, "Previous");
     }
     s_defaultHandler = qInstallMessageHandler(messageFilter);
-    // LayerShellQt::Shell::useLayerShell() не вызываем: с Qt >= 6.5 layer-shell включается
-    // только для окон, у которых до показа вызван LayerShellQt::Window::get() (см. Panel).
-    // Свой QMenuBar панель рисует сама и никуда не экспортирует.
+    // Don't call LayerShellQt::Shell::useLayerShell(): with Qt >= 6.5 layer-shell is enabled
+    // only for windows that called LayerShellQt::Window::get() before being shown (see Panel).
+    // The panel draws its own QMenuBar and doesn't export it anywhere.
     QCoreApplication::setAttribute(Qt::AA_DontUseNativeMenuBar);
 
     QApplication app(argc, argv);
@@ -115,7 +115,7 @@ int main(int argc, char *argv[])
     app.setStyle(new PanelStyle);
     setupTranslations(app);
 
-    setupIconTheme(); // до создания меню и значков
+    setupIconTheme(); // before creating menus and icons
 
     MenuController controller;
     if (!controller.start())
@@ -129,11 +129,11 @@ int main(int argc, char *argv[])
     SoundMenu sound;
     LabwcTheme theme;
 
-    // Команды для горячих клавиш: org.qutaq.Panel /Keyboard Next|Previous|Set
+    // Commands for keybinds: org.qutaq.Panel /Keyboard Next|Previous|Set
     QDBusConnection::sessionBus().registerObject(QStringLiteral("/Keyboard"), &keyboard, QDBusConnection::ExportAllSlots);
     QDBusConnection::sessionBus().registerService(QStringLiteral("org.qutaq.Panel"));
 
-    // По панели на каждый монитор; все показывают одно и то же меню (QAction общие).
+    // One panel per monitor; all show the same menu (shared QActions).
     QHash<QScreen *, Panel *> panels;
     auto addPanel = [&](QScreen *screen) {
         auto *p = new Panel(&controller, &theme, {&bluetooth, &battery, &keyboard, &network, &sound, &session, &tray}, screen);
