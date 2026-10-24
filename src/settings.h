@@ -4,8 +4,8 @@
 #include <QStandardPaths>
 #include <QVariant>
 
-// ~/.config/qutaq-panel/panel.conf; key is "group/key", e.g. "window/panelButtons".
-// The file is re-read on every access, so edits apply without a restart.
+// ~/.config/qutaq-panel/panel.conf; key — "группа/ключ", например "window/panelButtons".
+// Файл перечитывается при каждом обращении, поэтому правки применяются без перезапуска.
 inline QSettings &panelSettings()
 {
     static QSettings s(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
@@ -20,7 +20,7 @@ inline QVariant panelSetting(const QString &key, const QVariant &def = QVariant(
     return panelSettings().value(key, def);
 }
 
-// Writing: for toggles right in the panel menus (e.g. "Show percentage")
+// Запись — для переключателей прямо в меню панели (например, «Показывать процент»)
 inline void panelSettingSet(const QString &key, const QVariant &value)
 {
     panelSettings().setValue(key, value);

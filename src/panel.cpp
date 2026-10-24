@@ -58,9 +58,9 @@ QMenuBar#battery::item, QMenuBar#bluetooth::item, QMenuBar#tray::item {
     padding: 4px 8px;
 }
 QMenuBar#battery::item { padding: 4px 3px; }
-/* Keyboard layout: KeyboardBar draws the frame and the letters; only the item width is set here.
-   No vertical padding, otherwise with a large font the item doesn't fit
-   vertically and QMenuBar hides it behind the "»" button. */
+/* Раскладка: рамку и буквы рисует KeyboardBar; здесь только ширина пункта.
+   Вертикальных отступов нет — иначе при крупном шрифте пункт не влезает
+   по высоте и QMenuBar прячет его за кнопку «»». */
 QMenuBar#keyboard::item {
     padding: 0px 10px;
     font-size: 8pt;
@@ -68,8 +68,8 @@ QMenuBar#keyboard::item {
 }
 )";
 
-// Keyboard layout indicator: "En" in a frame, as in Unity. QMenuBar opens the menu,
-// but we paint it ourselves, so the item doesn't depend on style padding and always fits the panel.
+// Индикатор раскладки: буквы «En» в рамке, как в Unity. Меню открывает QMenuBar,
+// а рисуем сами — так пункт не зависит от отступов стиля и всегда влезает в панель.
 class KeyboardBar : public QMenuBar
 {
 public:
@@ -108,8 +108,8 @@ protected:
     void leaveEvent(QEvent *e) override { QMenuBar::leaveEvent(e); update(); }
 };
 
-// A window button with an image from the labwc theme. Draws its own hover highlight
-// if the theme has no separate *_hover image.
+// Кнопка окна с картинкой из темы labwc. Подложку при наведении рисует сама,
+// если в теме нет отдельной картинки *_hover.
 class WindowButton : public QAbstractButton
 {
 public:
@@ -173,7 +173,7 @@ Panel::Panel(MenuController *controller, LabwcTheme *theme, const Indicators &in
     setWindowFlag(Qt::FramelessWindowHint);
     setStyleSheet(kStyle);
 
-    // Otherwise QMenuBar would try to export itself over D-Bus, i.e. to ourselves.
+    // Иначе QMenuBar попытается экспортироваться через D-Bus — то есть нам же самим.
     m_bar->setNativeMenuBar(false);
     m_appBar->setNativeMenuBar(false);
     m_appBar->setStyleSheet(QStringLiteral("QMenuBar { font-weight: bold; }"));
@@ -184,34 +184,34 @@ Panel::Panel(MenuController *controller, LabwcTheme *theme, const Indicators &in
     m_soundBar->setNativeMenuBar(false);
     m_soundBar->setObjectName(QStringLiteral("sound"));
     m_soundBar->addAction(ind.sound->menu()->menuAction());
-    m_soundBar->installEventFilter(this); // wheel and middle button
+    m_soundBar->installEventFilter(this); // колесо и средняя кнопка
     m_netBar->setNativeMenuBar(false);
     m_netBar->setObjectName(QStringLiteral("network"));
     m_netBar->addAction(ind.network->menu()->menuAction());
     m_kbdBar->setNativeMenuBar(false);
     m_kbdBar->setObjectName(QStringLiteral("keyboard"));
     m_kbdBar->addAction(ind.keyboard->menu()->menuAction());
-    m_kbdBar->installEventFilter(this); // click: next layout; right-click: menu
-    m_kbdBar->setFixedHeight(kHeight);  // highlight and clicks cover the full panel height
+    m_kbdBar->installEventFilter(this); // щелчок — следующая раскладка, правый — меню
+    m_kbdBar->setFixedHeight(kHeight);  // подсветка и щелчок — на всю высоту панели
     m_batBar->setNativeMenuBar(false);
     m_batBar->setObjectName(QStringLiteral("battery"));
     m_batBar->addAction(ind.battery->menu()->menuAction());
-    m_batBar->addAction(ind.battery->labelAction()); // "85%" next to the icon, if enabled
+    m_batBar->addAction(ind.battery->labelAction()); // «85%» рядом со значком, если включено
     m_batBar->installEventFilter(this);
     m_btBar->setNativeMenuBar(false);
     m_btBar->setObjectName(QStringLiteral("bluetooth"));
     m_btBar->addAction(ind.bluetooth->menu()->menuAction());
     m_trayBar->setNativeMenuBar(false);
     m_trayBar->setObjectName(QStringLiteral("tray"));
-    m_trayBar->installEventFilter(this); // clicks on icons go to the program (Activate, menu, wheel)
+    m_trayBar->installEventFilter(this); // щелчки по значкам — программе (Activate, меню, колесо)
     connect(ind.tray, &SystemTray::changed, this, &Panel::rebuildTray);
     connect(ind.tray, &SystemTray::menuRequested, this, [this](QAction *a) {
-        // The program doesn't support Activate: open the menu where it was clicked
+        // Программа не поддерживает Activate — открыть меню там, где щёлкнули
         if (a == m_trayClicked && m_trayBar->actions().contains(a))
             m_trayBar->setActiveAction(a);
     });
     for (QMenuBar *b : {m_btBar, m_netBar, m_sessionBar})
-        b->installEventFilter(this); // tooltips
+        b->installEventFilter(this); // подсказки
     for (QObject *o : {static_cast<QObject *>(ind.keyboard), static_cast<QObject *>(ind.battery),
                        static_cast<QObject *>(ind.bluetooth)})
         connect(o, SIGNAL(changed()), this, SLOT(updateIndicatorsSlot()));
@@ -246,12 +246,12 @@ Panel::Panel(MenuController *controller, LabwcTheme *theme, const Indicators &in
     wl->setSpacing(0);
     buildWindowButtons();
     connect(theme, &LabwcTheme::changed, this, [this] {
-        buildWindowButtons(); // the theme or the button order may have changed
+        buildWindowButtons(); // могли поменяться тема или порядок кнопок
         updateWindowButtons();
     });
     connect(controller, &MenuController::activeWindowChanged, this, &Panel::updateWindowButtons);
     updateWindowButtons();
-    // Double-clicking an empty spot of the menu bar restores the window (like on the title bar)
+    // Двойной щелчок по пустому месту строки меню — восстановить окно (как по заголовку)
     m_bar->installEventFilter(this);
 
     auto *timer = new QTimer(this);
@@ -266,14 +266,14 @@ Panel::Panel(MenuController *controller, LabwcTheme *theme, const Indicators &in
 void Panel::setupLayerShell()
 {
     if (QGuiApplication::platformName() != QLatin1String("wayland")) {
-        // For debugging under X11/offscreen: a plain frameless window at the top of the screen.
+        // Для отладки под X11/offscreen — обычное окно без рамки сверху экрана.
         setWindowFlag(Qt::WindowStaysOnTopHint);
         setGeometry(m_screen->geometry().x(), m_screen->geometry().y(), m_screen->geometry().width(), kHeight);
         return;
     }
 
     setScreen(m_screen);
-    winId(); // creates the QWindow while it is not shown yet
+    winId(); // создаёт QWindow, пока она не показана
     LayerShellQt::Window *ls = LayerShellQt::Window::get(windowHandle());
     if (!ls)
         return;
@@ -282,18 +282,18 @@ void Panel::setupLayerShell()
     ls->setAnchors(LayerShellQt::Window::Anchors(LayerShellQt::Window::AnchorTop
                                                  | LayerShellQt::Window::AnchorLeft
                                                  | LayerShellQt::Window::AnchorRight));
-    ls->setExclusiveZone(kHeight); // windows won't go under the panel
-    // OnDemand: the panel gets the keyboard only on click; needed for navigating menus with arrow keys.
+    ls->setExclusiveZone(kHeight); // окна не будут залезать под панель
+    // OnDemand: панель получает клавиатуру только по клику — нужна для навигации по меню стрелками.
     ls->setKeyboardInteractivity(LayerShellQt::Window::KeyboardInteractivityOnDemand);
 #if LSQ_VERSION_MAJOR > 6 || (LSQ_VERSION_MAJOR == 6 && LSQ_VERSION_MINOR >= 6)
     ls->setWantsToBeOnActiveScreen(false);
     ls->setScreen(m_screen);
-#endif // in 6.0–6.5 the output is taken from QWindow::screen(), set above
+#endif // в 6.0–6.5 монитор берётся из QWindow::screen(), его задали выше
 }
 
 void Panel::rebuild()
 {
-    m_bar->clear(); // our QActions belong to the importer; clear() only detaches them
+    m_bar->clear(); // наши QAction принадлежат импортёру, clear их только отцепит
     m_bar->addActions(m_controller->menuActions());
 }
 
@@ -304,7 +304,7 @@ void Panel::buildWindowButtons()
         delete item->widget();
         delete item;
     }
-    // Same order as in Unity: close, minimize, restore
+    // Порядок как в Unity: закрыть, свернуть, восстановить
     const QStringList order = panelSetting(QStringLiteral("window/buttonLayout"), QStringLiteral("close,iconify,max"))
                                   .toString().split(',', Qt::SkipEmptyParts);
     for (const QString &raw : order) {
@@ -328,16 +328,16 @@ void Panel::buildWindowButtons()
 
 void Panel::updateWindowButtons()
 {
-    // auto: only if labwc itself removes the title bar of maximized windows
-    // (<maximizedDecoration>none</maximizedDecoration>), otherwise the buttons would be in two places.
+    // auto — только если labwc сам убирает заголовок у развёрнутых окон
+    // (<maximizedDecoration>none</maximizedDecoration>), иначе кнопки были бы в двух местах.
     const QString mode = panelSetting(QStringLiteral("window/panelButtons"), QStringLiteral("auto")).toString();
     bool show = m_controller->activeMaximized();
     if (mode == QLatin1String("never"))
         show = false;
     else if (mode != QLatin1String("always"))
         show = show && m_theme->maximizedWithoutTitlebar();
-    // isHidden(), not isVisible(): until the panel itself is shown, isVisible() is always false,
-    // and the buttons could not be hidden in advance.
+    // isHidden(), а не isVisible(): пока сама панель не показана, isVisible() всегда false,
+    // и скрыть кнопки заранее не получилось бы.
     if (show == m_winButtons->isHidden())
         m_winButtons->setVisible(show);
     for (QWidget *w : m_winButtons->findChildren<QWidget *>())
@@ -353,7 +353,7 @@ void Panel::mouseDoubleClickEvent(QMouseEvent *event)
 
 void Panel::updateIndicators()
 {
-    // Show only what this device has (desktop PCs often have no battery or Bluetooth)
+    // Показываем только то, что есть на этом устройстве (у ПК часто нет батареи и Bluetooth)
     m_kbdBar->setVisible(m_ind.keyboard->isShown());
     m_batBar->setVisible(m_ind.battery->isShown());
     m_btBar->setVisible(m_ind.bluetooth->isShown());
@@ -361,7 +361,7 @@ void Panel::updateIndicators()
 
 void Panel::rebuildTray()
 {
-    m_trayBar->clear(); // the QActions belong to the icons; clear() only detaches them
+    m_trayBar->clear(); // QAction принадлежат значкам, clear их только отцепит
     for (TrayItem *i : m_ind.tray->visibleItems())
         m_trayBar->addAction(i->action());
     m_trayBar->setVisible(!m_trayBar->actions().isEmpty());
@@ -369,7 +369,7 @@ void Panel::rebuildTray()
 
 bool Panel::eventFilter(QObject *watched, QEvent *event)
 {
-    // Tooltips for the icons on the right (QMenuBar doesn't show them itself)
+    // Подсказки к значкам справа (QMenuBar сам их не показывает)
     if (event->type() == QEvent::ToolTip) {
         if (auto *bar = qobject_cast<QMenuBar *>(watched); bar && bar != m_bar && bar != m_appBar) {
             auto *he = static_cast<QHelpEvent *>(event);
@@ -391,7 +391,7 @@ bool Panel::eventFilter(QObject *watched, QEvent *event)
             if (!item)
                 return false;
             if (t != QEvent::MouseButtonPress)
-                return true; // QMenuBar must not "press" the item by itself
+                return true; // QMenuBar не должен сам «нажимать» пункт
             QToolTip::hideText();
             const QPoint gp = me->globalPosition().toPoint();
             m_trayClicked = a;
@@ -400,7 +400,7 @@ bool Panel::eventFilter(QObject *watched, QEvent *event)
                 if (item->itemIsMenu() && item->menu())
                     m_trayBar->setActiveAction(a);
                 else
-                    item->activate(gp); // if unsupported, the menu opens (menuRequested)
+                    item->activate(gp); // не умеет — откроем меню (menuRequested)
                 break;
             case Qt::RightButton:
                 if (item->menu())
@@ -440,7 +440,7 @@ bool Panel::eventFilter(QObject *watched, QEvent *event)
         }
     }
     if (watched == m_batBar && event->type() == QEvent::MouseButtonPress) {
-        // Clicking the percentage opens the same menu as clicking the icon
+        // Щелчок по проценту открывает то же меню, что и щелчок по значку
         auto *me = static_cast<QMouseEvent *>(event);
         if (m_batBar->actionAt(me->position().toPoint()) == m_ind.battery->labelAction()) {
             m_batBar->setActiveAction(m_ind.battery->menu()->menuAction());
@@ -456,7 +456,7 @@ bool Panel::eventFilter(QObject *watched, QEvent *event)
     }
     if (watched == m_soundBar) {
         if (event->type() == QEvent::Wheel) {
-            // As in Unity: the wheel over the icon changes the volume
+            // Как в Unity: колесо над значком меняет громкость
             const int step = qMax(1, QSettings(QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
                                                    + QStringLiteral("/qutaq-panel/panel.conf"),
                                                QSettings::IniFormat)
@@ -470,7 +470,7 @@ bool Panel::eventFilter(QObject *watched, QEvent *event)
         }
         if (event->type() == QEvent::MouseButtonPress
             && static_cast<QMouseEvent *>(event)->button() == Qt::MiddleButton) {
-            m_sound->toggleMute(); // middle button: mute/unmute
+            m_sound->toggleMute(); // средняя кнопка — выключить/включить звук
             return true;
         }
     }

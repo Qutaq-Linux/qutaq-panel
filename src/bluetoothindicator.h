@@ -8,22 +8,22 @@
 class QMenu;
 class QTimer;
 
-// Bluetooth indicator, like indicator-bluetooth in Ubuntu Unity:
+// Индикатор Bluetooth, как indicator-bluetooth в Ubuntu Unity:
 //
-//   ☑ Bluetooth                 ← turn the adapter on/off (lifting an rfkill block)
-//   ☐ Visible                   ← other devices can see the computer
+//   ☑ Bluetooth                 ← включить/выключить адаптер (при rfkill-блокировке — снять её)
+//   ☐ Видимость                 ← другие устройства видят компьютер
 //   ─────────────
-//   🎧 WH-1000XM4 Headphones ▸  ← paired devices
-//        ☑ Connected
-//        Battery: 80%
-//        Forget Device
+//   🎧 Наушники WH-1000XM4 ▸    ← сопряжённые устройства
+//        ☑ Подключено
+//        Заряд: 80%
+//        Забыть устройство
 //   ─────────────
-//   Add New Device…
-//   Bluetooth Settings…
+//   Добавить новое устройство…
+//   Параметры Bluetooth…
 //
-// Everything goes through BlueZ (org.bluez, system bus). With no adapter (many PCs have none)
-// or with the bluetooth service stopped, the indicator is hidden.
-// Settings, section [bluetooth]: show=auto|always|never, settingsCommand, wizardCommand.
+// Всё через BlueZ (org.bluez, системная шина). Если адаптера нет (у многих ПК его нет)
+// или служба bluetooth не запущена — индикатор скрыт.
+// Настройки, секция [bluetooth]: show=auto|always|never, settingsCommand, wizardCommand.
 class BluetoothIndicator : public QObject
 {
     Q_OBJECT
@@ -41,7 +41,7 @@ private Q_SLOTS:
     void onBluezSignal(const QDBusMessage &msg);
 
 private:
-    using Objects = QHash<QString, QHash<QString, QVariantMap>>; // path → interface → properties
+    using Objects = QHash<QString, QHash<QString, QVariantMap>>; // путь → интерфейс → свойства
 
     Objects managedObjects() const;
     QString adapterPath(const Objects &objs) const;

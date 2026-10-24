@@ -87,12 +87,12 @@ void ToplevelManager::zwlr_foreign_toplevel_manager_v1_toplevel(::zwlr_foreign_t
     auto *t = new Toplevel(handle);
     t->setParent(this);
     t->m_sequence = ++m_nextSequence;
-    // The compositor sends already open windows right after the manager is bound.
+    // Композитор присылает уже открытые окна сразу после привязки менеджера.
     t->m_initial = m_activatedAt >= 0 && uptime().elapsed() - m_activatedAt < 500;
     m_toplevels << t;
 
     connect(t, &Toplevel::changed, this, [this, t] {
-        // The panel's own windows (if layer-shell is unavailable) don't count as the active application.
+        // Собственные окна панели (если layer-shell недоступен) активным приложением не считаем.
         if (t->appId() == QGuiApplication::desktopFileName() || t->appId() == QCoreApplication::applicationName())
             return;
         if (!t->m_ready) {
@@ -103,7 +103,7 @@ void ToplevelManager::zwlr_foreign_toplevel_manager_v1_toplevel(::zwlr_foreign_t
             m_active = t;
             Q_EMIT activeToplevelChanged();
         } else if (m_active == t) {
-            Q_EMIT activeToplevelChanged(); // the title/state changed
+            Q_EMIT activeToplevelChanged(); // сменился заголовок/состояние
         }
     });
     connect(t, &Toplevel::closed, this, [this, t] {

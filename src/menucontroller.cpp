@@ -66,7 +66,7 @@ static QString prettyAppId(const QString &appId)
     return s;
 }
 
-// How closely a process name resembles the window's app_id (0 = not at all).
+// Насколько имя процесса похоже на app_id окна (0 — не похоже).
 static int matchScore(const QString &appIdRaw, const QStringList &names)
 {
     const QString appId = appIdRaw.toLower();
@@ -75,7 +75,7 @@ static int matchScore(const QString &appIdRaw, const QStringList &names)
     for (const QString &raw : names) {
         const QString n = raw.toLower();
         const QString nShort = n.section('.', -1);
-        if (n == appId) best = qMax(best, 3);                         // exact match / .desktop
+        if (n == appId) best = qMax(best, 3);                         // точное совпадение / .desktop
         else if (n == shortId || nShort == shortId) best = qMax(best, 2);
         else if (!shortId.isEmpty()
                  && (n.startsWith(shortId + '-') || n.startsWith(shortId + '_')
@@ -96,18 +96,18 @@ MenuController::MenuController(QObject *parent)
     connect(m_toplevels, &ToplevelManager::activeToplevelChanged, this, &MenuController::reevaluate);
     connect(m_toplevels, &ToplevelManager::activeToplevelChanged, this, &MenuController::activeWindowChanged);
     connect(m_registrar, &AppMenuRegistrar::entriesChanged, this, &MenuController::reevaluate);
-    // The protocol became (un)available, e.g. the compositor announced the global after us.
+    // Протокол стал (не)доступен — например, композитор объявил глобал позже нас.
     connect(m_toplevels, &QWaylandClientExtension::activeChanged, this, &MenuController::reevaluate);
-    // Items depend on the window state, so build them right before showing.
+    // Пункты зависят от состояния окна, поэтому собираем их прямо перед показом.
     connect(m_windowMenu, &QMenu::aboutToShow, this, &MenuController::rebuildWindowMenu);
     rebuildWindowMenu();
 
-    // A window is often activated before the application has published its menu, so search again.
+    // Окно часто активируется раньше, чем приложение успевает опубликовать меню, — повторяем поиск.
     m_rescanTimer = new QTimer(this);
     m_rescanTimer->setSingleShot(true);
     m_rescanTimer->setInterval(500);
     connect(m_rescanTimer, &QTimer::timeout, this, [this] {
-        m_scanAppId.clear(); // reset the search cache
+        m_scanAppId.clear(); // сбросить кэш поиска
         reevaluate();
     });
 
@@ -120,17 +120,17 @@ MenuController::MenuController(QObject *parent)
 }
 
 // ---------------------------------------------------------------------------
-// Pairing windows with menu objects.
+// Привязка окон к объектам меню.
 //
-// Wayland doesn't tell which bus object belongs to which window (GNOME and KDE have their own
-// protocols for that, wlroots compositors don't). But window object numbers only grow:
+// Wayland не сообщает, какой объект на шине принадлежит какому окну (в GNOME и KDE для этого
+// есть свои протоколы, в wlroots-композиторах — нет). Зато номера объектов окон только растут:
 // Qt — /MenuBar/<N>, appmenu-gtk-module — .../menubar/<N>, GtkApplication — .../window/<N>.
-// So when a window appears, its object is the newest one not yet taken. Windows opened
-// before the panel started are paired in order. Dialogs (windows with a parent) are skipped.
+// Поэтому при появлении окна его объект — самый новый из ещё не занятых. Окна, открытые
+// до запуска панели, сопоставляются по порядку. Диалоги (окна с родителем) не участвуют.
 
 static int busOrder(const QString &service)
 {
-    return service.section('.', 1).toInt(); // ":1.42" → 42, names are handed out in increasing order
+    return service.section('.', 1).toInt(); // ":1.42" → 42, имена выдаются по возрастанию
 }
 
 static bool entryLess(const MenuEntry &a, const MenuEntry &b)
@@ -183,7 +183,7 @@ void MenuController::pairPending()
     for (auto it = byApp.cbegin(); it != byApp.cend(); ++it) {
         const QList<MenuEntry> found = scanBus(it.key(), true);
 
-        // Pairs whose object disappeared (Qt recreates /MenuBar when a window is shown) go back to the queue.
+        // Пары, чей объект исчез (Qt пересоздаёт /MenuBar при показе окна), — заново в очередь.
         QSet<QString> alive;
         for (const MenuEntry &e : found)
             alive.insert(e.key());
@@ -213,7 +213,7 @@ void MenuController::pairPending()
                 (t->isInitial() ? existing : fresh) << t;
         auto bySeq = [](Toplevel *a, Toplevel *b) { return a->sequence() < b->sequence(); };
         std::sort(fresh.begin(), fresh.end(), bySeq);
-        // wlroots sends already open windows from newest to oldest, so reverse them.
+        // Уже открытые окна wlroots присылает от новых к старым — разворачиваем.
         std::sort(existing.begin(), existing.end(), [](Toplevel *a, Toplevel *b) {
             return a->sequence() > b->sequence();
         });
@@ -227,8 +227,8 @@ void MenuController::pairPending()
                 changedActive = true;
         };
 
-        // New windows get the newest objects. If there are fewer objects than windows yet, wait:
-        // the application may not have published its menu yet.
+        // Новым окнам — самые новые объекты. Если объектов пока меньше, чем окон, ждём:
+        // приложение могло ещё не опубликовать меню.
         if (!fresh.isEmpty() && (free.size() >= fresh.size() || lastAttempt)) {
             const int k = qMin(fresh.size(), free.size());
             const QList<MenuEntry> newest = free.mid(free.size() - k);
@@ -236,25 +236,25 @@ void MenuController::pairPending()
                 pair(fresh.at(i), newest.at(i));
             free = free.mid(0, free.size() - k);
         }
-        // Already open windows get the remaining ones in order.
+        // Уже открытым — оставшиеся по порядку.
         for (int i = 0; i < existing.size() && i < free.size(); ++i)
             pair(existing.at(i), free.at(i));
     }
 
     if (lastAttempt)
-        m_pending.clear(); // the rest fall back to the default choice (the newest menu)
+        m_pending.clear(); // для оставшихся — выбор по умолчанию (самое новое меню)
     else if (!m_pending.isEmpty())
         m_pairTimer->start();
 
     if (changedActive) {
-        m_candidateKeys.clear(); // make reevaluate() recreate the importer
+        m_candidateKeys.clear(); // заставить reevaluate() пересоздать импортёр
         reevaluate();
     }
 }
 
-// Walks the object tree of one bus connection and collects menus of both kinds:
-//  - com.canonical.dbusmenu: Qt publishes it as /MenuBar/<N>;
-//  - org.gtk.Menus at .../menus/menubar[/N]: GtkApplication and appmenu-gtk-module.
+// Обходит дерево объектов одного подключения к шине и собирает меню обоих видов:
+//  - com.canonical.dbusmenu — Qt публикует как /MenuBar/<N>;
+//  - org.gtk.Menus на .../menus/menubar[/N] — GtkApplication и appmenu-gtk-module.
 QList<MenuEntry> MenuController::findMenusOf(const QString &service, bool *ok)
 {
     if (ok)
@@ -262,7 +262,7 @@ QList<MenuEntry> MenuController::findMenusOf(const QString &service, bool *ok)
     static const QRegularExpression ifaceRe(QStringLiteral("<interface name=\"([^\"]+)\""));
     static const QRegularExpression childRe(QStringLiteral("<node name=\"([^\"/][^\"]*)\""));
     static const QRegularExpression tailNumRe(QStringLiteral("/(\\d+)$"));
-    // Large subtrees that are certainly empty for us
+    // Большие и заведомо пустые для нас поддеревья
     static const QStringList skip = {QStringLiteral("/org/gtk/vfs"), QStringLiteral("/org/freedesktop"),
                                      QStringLiteral("/org/a11y"), QStringLiteral("/org/gtk/Profiler")};
 
@@ -270,7 +270,7 @@ QList<MenuEntry> MenuController::findMenusOf(const QString &service, bool *ok)
 
     QDBusConnection bus = QDBusConnection::sessionBus();
     QList<MenuEntry> out;
-    QHash<QString, QList<int>> appWindows; // GtkApplication base → numbers of its windows
+    QHash<QString, QList<int>> appWindows; // база GtkApplication → номера её окон
     QStringList queue{QStringLiteral("/")};
     int visited = 0;
     while (!queue.isEmpty() && visited < 200) {
@@ -286,8 +286,8 @@ QList<MenuEntry> MenuController::findMenusOf(const QString &service, bool *ok)
             if (path == QLatin1String("/")) {
                 if (ok)
                     *ok = false;
-                // GDBus's second connection never answers: stop asking after two misses.
-                // A connection that answered at least once was just busy (e.g. opening a window).
+                // Второе подключение GDBus никогда не отвечает — после двух промахов не спрашиваем.
+                // Подключение, которое хоть раз ответило, просто было занято (например, открывало окно).
                 if (reply.errorName() == QLatin1String("org.freedesktop.DBus.Error.NoReply")
                     && !m_answeredServices.contains(service) && ++m_silentStrikes[service] >= 2)
                     m_deadServices.insert(service);
@@ -309,14 +309,14 @@ QList<MenuEntry> MenuController::findMenusOf(const QString &service, bool *ok)
             MenuEntry e;
             e.service = service;
             e.path = path;
-            e.serial = n; // a larger number means a newer window
+            e.serial = n; // больший номер — более новое окно
             out << e;
         } else if (ifaces.contains(QLatin1String("org.gtk.Menus")) && path.contains(QLatin1String("/menus/menubar"))) {
             MenuEntry e;
             e.kind = MenuEntry::GMenu;
             e.service = service;
             e.path = path;
-            // A GtkApplication's own menu is preferred over the module's per-window copies
+            // Собственное меню GtkApplication предпочтительнее копий модуля по окнам
             e.serial = path.endsWith(QLatin1String("/menus/menubar")) ? 1000 : 500 + n;
             out << e;
         } else if (ifaces.contains(QLatin1String("org.gtk.Actions"))) {
@@ -330,8 +330,8 @@ QList<MenuEntry> MenuController::findMenusOf(const QString &service, bool *ok)
             queue << prefix + '/' + m.next().captured(1);
     }
 
-    // A GtkApplication has one menu for the whole application, but win.* actions belong to
-    // each window (<base>/window/<N>). Split such a menu into per-window entries.
+    // У GtkApplication меню одно на всё приложение, а действия win.* — у каждого окна свои
+    // (<база>/window/<N>). Раскладываем такое меню на записи по окнам.
     QList<MenuEntry> expanded;
     for (const MenuEntry &e : std::as_const(out)) {
         const QString suffix = QStringLiteral("/menus/menubar");
@@ -352,9 +352,9 @@ QList<MenuEntry> MenuController::findMenusOf(const QString &service, bool *ok)
     return expanded;
 }
 
-// Qt >= 6.9 doesn't call RegisterWindow on Wayland (only on X11), and the GTK module
-// cannot pass the menu address without a GNOME protocol. They still publish the menus,
-// so find them among the processes of the active window.
+// Qt >= 6.9 под Wayland не вызывает RegisterWindow (только под X11), а GTK-модуль
+// не может передать адрес меню без протокола GNOME. Сами меню они при этом публикуют —
+// находим их у процессов активного окна.
 QList<MenuEntry> MenuController::scanBus(const QString &appId, bool force)
 {
     if (appId == m_scanAppId && !force)
@@ -375,7 +375,7 @@ QList<MenuEntry> MenuController::scanBus(const QString &appId, bool force)
     for (const QString &name : names) {
         if (!name.startsWith(':') || name == bus.baseService())
             continue;
-        // Unique names are never reused, so cache the PID and process names.
+        // Уникальные имена не переиспользуются, поэтому PID и имена процесса кэшируем.
         auto it = m_busNames.constFind(name);
         alive.insert(name, it != m_busNames.constEnd() ? it.value()
                                                        : processNames(iface->servicePid(name).value()));
@@ -387,7 +387,7 @@ QList<MenuEntry> MenuController::scanBus(const QString &appId, bool force)
             continue;
         bool ok = true;
         QList<MenuEntry> menus = findMenusOf(it.key(), &ok);
-        if (!ok) // didn't answer in time: assume its menus haven't changed
+        if (!ok) // не ответил вовремя — считаем, что его меню не изменились
             for (const MenuEntry &e : previous)
                 if (e.service == it.key())
                     menus << e;
@@ -463,9 +463,9 @@ QList<MenuEntry> MenuController::candidatesFor(const QString &appId)
                 all.append(found);
         }
     }
-    // A dialog or a window not paired yet: show the menu of the last active window
-    // of the same application rather than a random one.
-    // Same if the window's menu is empty (appmenu-gtk-module creates such menus for dialogs too).
+    // Диалог или ещё не привязанное окно — показываем меню последнего активного окна
+    // того же приложения, а не случайное.
+    // То же, если у окна пустое меню (appmenu-gtk-module заводит такое и для диалогов).
     Toplevel *owner = m_toplevels->active();
     const bool noOwnMenu = owner && (!m_pairs.contains(owner) || m_emptyKeys.contains(m_pairs.value(owner)));
     if (noOwnMenu && m_lastPaired && m_lastPaired != owner && m_lastPaired->appId() == appId)
@@ -477,12 +477,12 @@ QList<MenuEntry> MenuController::candidatesFor(const QString &appId)
         if (seen.contains(e.key()))
             continue;
         seen.insert(e.key());
-        // Without window tracking any menu fits; the most recent comes first.
+        // Без отслеживания окон подходит любое меню, самое свежее — первым.
         int score = hasToplevelTracking() ? matchScore(appId, e.names) : 1;
         if (score > 0 && e.key() == ownKey)
-            score = 100;              // the menu of exactly this window
+            score = 100;              // меню именно этого окна
         else if (score > 0 && othersKeys.contains(e.key()))
-            score = 0;                // the menu of another window of the same application
+            score = 0;                // меню другого окна того же приложения
         if (score > 0)
             scored.append({score, e});
     }
@@ -540,8 +540,8 @@ void MenuController::reevaluate()
         m_rescanTimer->start();
     }
 
-    // The candidate set hasn't changed: keep the current menu, otherwise it would flicker
-    // (e.g. when the window title changes).
+    // Набор кандидатов не изменился — оставляем текущее меню, иначе оно мигало бы
+    // (например, при смене заголовка окна).
     QStringList keys;
     for (const MenuEntry &e : candidates)
         keys << e.key();
@@ -562,7 +562,7 @@ void MenuController::reevaluate()
 void MenuController::tryNextCandidate()
 {
     if (m_importer)
-        m_importer->deleteLater();   // deletes its QActions, so they disappear from the QMenuBar
+        m_importer->deleteLater();   // удалит свои QAction → они сами исчезнут из QMenuBar
     m_importer = nullptr;
     m_importerKey.clear();
 
@@ -586,8 +586,8 @@ void MenuController::tryNextCandidate()
         const int n = std::count_if(acts.cbegin(), acts.cend(), [](QAction *a) { return a->isVisible(); });
         qInfo().noquote() << "menu" << e.service + (e.winPath.isEmpty() ? e.path : e.path + " " + e.winPath)
                           << "loaded," << n << "top-level items";
-        // A Qt application may have several menus (hidden windows, old registrations):
-        // skip an empty one and try the next.
+        // У Qt-приложения бывает несколько меню (скрытые окна, старые регистрации) —
+        // пустое пропускаем и пробуем следующее.
         if (n > 0) {
             m_filledKeys.insert(e.key());
             m_emptyKeys.remove(e.key());
@@ -596,7 +596,7 @@ void MenuController::tryNextCandidate()
         }
         if (n == 0 && !m_emptyKeys.contains(e.key())) {
             m_emptyKeys.insert(e.key());
-            // If this is the menu of a window that has none (a dialog), choose again with that in mind.
+            // Если это меню окна, где меню нет (диалог), — перевыбрать с учётом этого.
             if (m_pairs.key(e.key()) == m_toplevels->active()) {
                 m_candidateKeys.clear();
                 QTimer::singleShot(0, this, &MenuController::reevaluate);
@@ -612,7 +612,7 @@ void MenuController::tryNextCandidate()
         if (m_importer != imp)
             return;
         qInfo().noquote() << "menu" << e.service + e.path << "unavailable, trying next";
-        // If it was a menu paired with a window, re-check the pairing.
+        // Если это было меню, привязанное к окну, — привязку на перепроверку.
         for (auto p = m_pairs.begin(); p != m_pairs.end(); ++p) {
             if (p.value() == e.key()) {
                 m_pending << p.key();
@@ -649,7 +649,7 @@ void MenuController::rebuildWindowMenu()
                                 if (tp->isMaximized()) tp->unset_maximized();
                                 else tp->set_maximized();
                             });
-    // set/unset_fullscreen appeared in version 2 of the protocol
+    // set/unset_fullscreen появились во 2-й версии протокола
     if (wl_proxy_get_version(reinterpret_cast<wl_proxy *>(t->object())) >= 2) {
         m_windowMenu->addAction(QIcon::fromTheme("view-fullscreen"),
                                 t->isFullscreen() ? tr("Exit Full Screen")

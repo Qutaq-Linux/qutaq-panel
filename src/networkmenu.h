@@ -9,32 +9,32 @@ class QDialog;
 class QMenu;
 class QTimer;
 
-// Network indicator left of the volume, like nm-applet in the Ubuntu Unity panel:
+// Индикатор сети слева от громкости — как nm-applet в панели Ubuntu Unity:
 //
-//   Wired Network                (header)
+//   Проводная сеть               (заголовок)
 //   ✓ Wired connection 1
-//     Disconnect
+//     Отключить
 //   ─────────────
-//   Wireless Network             (header)
+//   Беспроводная сеть            (заголовок)
 //   ✓ HomeWiFi            📶🔒
 //     CafeFree            📶
-//     More Networks ▸
-//     Disconnect
+//     Другие сети ▸
+//     Отключить
 //   ─────────────
-//   VPN Connections ▸
+//   VPN-соединения ▸
 //   ─────────────
-//   ✓ Enable Networking
-//   ✓ Enable Wi-Fi
+//   ✓ Включить сеть
+//   ✓ Включить Wi-Fi
 //   ─────────────
-//   Connection Information
-//   Edit Connections…
+//   Сведения о соединении
+//   Изменить соединения…
 //
-// Everything goes through NetworkManager over the D-Bus system bus. For a new secured Wi-Fi
-// network the panel asks for the password itself (WPA/WPA2/WPA3-Personal).
+// Всё — через NetworkManager по системной шине D-Bus. К новой защищённой сети Wi-Fi
+// панель сама спрашивает пароль (WPA/WPA2/WPA3-Personal).
 //
-// Settings: ~/.config/qutaq-panel/panel.conf, section [network]:
-//   editorCommand=   "Edit Connections…"; empty means nm-connection-editor
-//   maxNetworks=6    how many Wi-Fi networks to show at once (the rest go to "More Networks")
+// Настройки: ~/.config/qutaq-panel/panel.conf, секция [network]:
+//   editorCommand=   «Изменить соединения…»; пусто — nm-connection-editor
+//   maxNetworks=6    сколько сетей Wi-Fi показывать сразу (остальные — в «Другие сети»)
 class NetworkMenu : public QObject
 {
     Q_OBJECT
@@ -62,8 +62,8 @@ private:
     QPointer<QDialog> m_info;
 };
 
-// Indicator icons. kind: 0 no network, 1 wired, 2 Wi-Fi.
-// level: Wi-Fi level 0–4; dim: no connection or connecting; vpn: padlock.
+// Значки индикатора. kind: 0 — нет сети, 1 — проводная, 2 — Wi-Fi.
+// level — уровень Wi-Fi 0–4; dim — соединения нет или идёт подключение; vpn — замочек.
 class QIcon;
 class QColor;
 QIcon networkIcon(const QColor &color, int size, int kind, int level, bool dim, bool vpn);

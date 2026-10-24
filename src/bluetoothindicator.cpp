@@ -58,7 +58,7 @@ QIcon bluetoothIcon(const QColor &color, int size, bool on, bool connected)
         QColor c = color;
         if (!on)
             c.setAlphaF(0.35);
-        // Bluetooth rune
+        // Руна Bluetooth
         QPainterPath rune;
         rune.moveTo(4 * u, 4.8 * u);
         rune.lineTo(11 * u, 10.8 * u);
@@ -70,7 +70,7 @@ QIcon bluetoothIcon(const QColor &color, int size, bool on, bool connected)
         p.setBrush(Qt::NoBrush);
         p.drawPath(rune);
         if (on && connected) {
-            // Dots on both sides: devices are connected
+            // Точки по бокам — есть подключённые устройства
             p.setPen(Qt::NoPen);
             p.setBrush(c);
             p.drawEllipse(QPointF(2.2 * u, 8 * u), 1.1 * u, 1.1 * u);
@@ -84,7 +84,7 @@ QIcon bluetoothIcon(const QColor &color, int size, bool on, bool connected)
 
 static QIcon deviceIcon(const QString &bluezIcon)
 {
-    // BlueZ uses freedesktop icon names: audio-headset, input-mouse, phone…
+    // BlueZ даёт имена из freedesktop: audio-headset, input-mouse, phone…
     for (const QString &name : {bluezIcon, bluezIcon + QStringLiteral("-symbolic"), QStringLiteral("bluetooth")}) {
         const QIcon i = QIcon::fromTheme(name);
         if (!name.isEmpty() && !i.isNull())
@@ -93,8 +93,8 @@ static QIcon deviceIcon(const QString &bluezIcon)
     return {};
 }
 
-// rfkill: lift the soft block on Bluetooth (like "rfkill unblock bluetooth").
-// /dev/rfkill is accessible to the user of the active session (systemd uaccess rule).
+// rfkill: снять программную блокировку Bluetooth (как «rfkill unblock bluetooth»).
+// /dev/rfkill доступен пользователю активного сеанса (правило uaccess в systemd).
 static bool rfkillUnblock()
 {
     const int fd = ::open("/dev/rfkill", O_WRONLY | O_CLOEXEC);
@@ -129,7 +129,7 @@ BluetoothIndicator::BluetoothIndicator(QObject *parent)
               this, SLOT(onBluezSignal(QDBusMessage)));
     b.connect(kBluez, QStringLiteral("/"), QStringLiteral("org.freedesktop.DBus.ObjectManager"), QStringLiteral("InterfacesRemoved"),
               this, SLOT(onBluezSignal(QDBusMessage)));
-    // The bluetooth service started/stopped, or an adapter was plugged in (USB dongle)
+    // Служба bluetooth запустилась/остановилась, адаптер подключили (USB-свисток)
     auto *watcher = new QDBusServiceWatcher(kBluez, b, QDBusServiceWatcher::WatchForOwnerChange, this);
     connect(watcher, &QDBusServiceWatcher::serviceOwnerChanged, m_debounce, qOverload<>(&QTimer::start));
 
@@ -188,7 +188,7 @@ QString BluetoothIndicator::adapterPath(const Objects &objs) const
         if (it.value().contains(kAdapter))
             adapters << it.key();
     std::sort(adapters.begin(), adapters.end());
-    for (const QString &a : adapters) // a powered one is preferred
+    for (const QString &a : adapters) // включённый — предпочтительнее
         if (objs.value(a).value(kAdapter).value(QStringLiteral("Powered")).toBool())
             return a;
     return adapters.value(0);
@@ -255,7 +255,7 @@ void BluetoothIndicator::rebuildMenu()
     visible->setToolTip(tr("Other devices see this computer as “%1”").arg(a.value(QStringLiteral("Alias")).toString()));
     connect(visible, &QAction::triggered, this, [this](bool v) { setAdapterProperty(QStringLiteral("Discoverable"), v); });
 
-    // Paired devices of this adapter
+    // Сопряжённые устройства этого адаптера
     struct Dev { QString path, name, icon; bool connected; int battery; };
     QList<Dev> devs;
     for (auto it = objs.cbegin(); it != objs.cend(); ++it) {
@@ -321,7 +321,7 @@ void BluetoothIndicator::setAdapterProperty(const QString &name, bool value)
     const QDBusMessage r = sysBus().call(msg, QDBus::Block, 5000);
     if (r.type() == QDBusMessage::ErrorMessage) {
         if (name == QLatin1String("Powered") && value && r.errorName() == QLatin1String("org.bluez.Error.Blocked")) {
-            // The adapter is blocked by rfkill (e.g. airplane mode): unblock it and try again
+            // Адаптер заблокирован rfkill (например, «режим полёта») — снимаем блокировку и пробуем снова
             if (rfkillUnblock()) {
                 qInfo() << "bluetooth: rfkill unblocked";
                 QTimer::singleShot(700, this, [this] { setAdapterProperty(QStringLiteral("Powered"), true); });
@@ -342,7 +342,7 @@ void BluetoothIndicator::setPowered(bool on)
 
 void BluetoothIndicator::deviceCall(const QString &path, const QString &method)
 {
-    // Connecting can take up to half a minute, so don't block the panel
+    // Подключение может занять до полуминуты — не блокируем панель
     QDBusMessage msg = QDBusMessage::createMethodCall(kBluez, path, kDevice, method);
     auto *w = new QDBusPendingCallWatcher(sysBus().asyncCall(msg, 30000), this);
     connect(w, &QDBusPendingCallWatcher::finished, this, [this, method](QDBusPendingCallWatcher *w) {

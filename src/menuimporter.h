@@ -5,8 +5,8 @@
 
 class QMenu;
 
-// Common interface for menu sources: com.canonical.dbusmenu (Qt, Electron, libdbusmenu)
-// and org.gtk.Menus + org.gtk.Actions (GTK). rootMenu() holds the top-level items.
+// Общий интерфейс для источников меню: com.canonical.dbusmenu (Qt, Electron, libdbusmenu)
+// и org.gtk.Menus + org.gtk.Actions (GTK). rootMenu() содержит пункты верхнего уровня.
 class MenuImporter : public QObject
 {
     Q_OBJECT
@@ -15,14 +15,14 @@ public:
         : QObject(parent), m_service(service), m_path(path) {}
 
     virtual QMenu *rootMenu() const = 0;
-    virtual void refresh() = 0; // re-read the whole tree
+    virtual void refresh() = 0; // перечитать всё дерево
 
     QString service() const { return m_service; }
     QString path() const { return m_path; }
 
 Q_SIGNALS:
-    void menuUpdated(); // the root was rebuilt
-    void invalid();     // the menu is unavailable
+    void menuUpdated(); // корень перестроен
+    void invalid();     // меню недоступно
 
 protected:
     QString m_service;

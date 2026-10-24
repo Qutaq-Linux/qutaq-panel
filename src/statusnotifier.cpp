@@ -37,7 +37,7 @@ static const char *kWatcherIface = "org.kde.StatusNotifierWatcher";
 
 static QDBusConnection bus() { return QDBusConnection::sessionBus(); }
 
-// ":1.42/org/ayatana/NotificationItem/x" → service and path; without a path, /StatusNotifierItem
+// «:1.42/org/ayatana/NotificationItem/x» → служба и путь; без пути — /StatusNotifierItem
 static void splitKey(const QString &key, QString *service, QString *path)
 {
     const int slash = key.indexOf('/');
@@ -50,7 +50,7 @@ static void splitKey(const QString &key, QString *service, QString *path)
     }
 }
 
-// ---------------- icon theme ----------------
+// ---------------- тема значков ----------------
 
 void setupIconTheme()
 {
@@ -60,7 +60,7 @@ void setupIconTheme()
         return;
 
     QString name;
-    // 1. GTK 3/4: Manjaro Xfce writes the theme there too
+    // 1. GTK 3/4 — Manjaro Xfce пишет тему и туда
     const QString cfg = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation);
     for (const char *f : {"/gtk-3.0/settings.ini", "/gtk-4.0/settings.ini"}) {
         QSettings s(cfg + QLatin1String(f), QSettings::IniFormat);
@@ -68,7 +68,7 @@ void setupIconTheme()
         if (!name.isEmpty())
             break;
     }
-    // 2. Xfce (xsettings) and GNOME
+    // 2. Xfce (xsettings) и GNOME
     auto run = [](const QString &prog, const QStringList &args) {
         if (QStandardPaths::findExecutable(prog).isEmpty())
             return QString();
@@ -92,7 +92,7 @@ void setupIconTheme()
     }
 }
 
-// ---------------- watcher ----------------
+// ---------------- справочник ----------------
 
 StatusNotifierWatcher::StatusNotifierWatcher(QObject *parent)
     : QObject(parent)
@@ -106,7 +106,7 @@ StatusNotifierWatcher::StatusNotifierWatcher(QObject *parent)
 void StatusNotifierWatcher::RegisterStatusNotifierItem(const QString &serviceOrPath)
 {
     QString service, path;
-    if (serviceOrPath.startsWith('/')) { // libappindicator passes a path; the service is the sender
+    if (serviceOrPath.startsWith('/')) { // libappindicator передаёт путь, служба — отправитель
         service = message().service();
         path = serviceOrPath;
     } else {
@@ -118,7 +118,7 @@ void StatusNotifierWatcher::RegisterStatusNotifierItem(const QString &serviceOrP
         return;
     m_items << key;
     m_serviceWatcher->addWatchedService(service);
-    // An item with a well-known name (org.kde.foo) dies with its process, so watch that too
+    // Значок с известным именем (org.kde.foo) умирает вместе с процессом — следим и за ним
     if (!service.startsWith(':') && calledFromDBus())
         m_serviceWatcher->addWatchedService(message().service());
     Q_EMIT StatusNotifierItemRegistered(key);
@@ -149,9 +149,9 @@ void StatusNotifierWatcher::onServiceGone(const QString &service)
         Q_EMIT StatusNotifierHostUnregistered();
 }
 
-// ---------------- items ----------------
+// ---------------- значки ----------------
 
-// a(iiay): ARGB32, network byte order
+// a(iiay): ARGB32, порядок байтов сетевой
 static QIcon iconFromPixmaps(const QVariant &v)
 {
     QIcon icon;
@@ -182,7 +182,7 @@ static QIcon iconFromPixmaps(const QVariant &v)
     return icon;
 }
 
-// Icon by name: the program's own directory (IconThemePath), the theme, /usr/share/pixmaps
+// Значок по имени: свой каталог программы (IconThemePath), тема, /usr/share/pixmaps
 static QIcon iconFromName(const QString &name, const QString &themePath)
 {
     if (name.isEmpty())
@@ -211,7 +211,7 @@ static QIcon iconFromName(const QString &name, const QString &themePath)
     return {};
 }
 
-// Placeholder icon: the first letter of the title in a circle
+// Значок-заглушка: первая буква названия в круге
 static QIcon letterIcon(const QString &title)
 {
     QIcon icon;
@@ -280,7 +280,7 @@ void TrayItem::refresh()
         if (r.type() == QDBusMessage::ReplyMessage && !r.arguments().isEmpty())
             r.arguments().first().value<QDBusArgument>() >> props;
         if (props.isEmpty() && !m_triedOtherIface) {
-            // Some programs use the freedesktop interface instead of kde
+            // Некоторые программы используют интерфейс freedesktop вместо kde
             m_triedOtherIface = true;
             m_iface = m_iface.startsWith(QLatin1String("org.kde"))
                 ? QStringLiteral("org.freedesktop.StatusNotifierItem") : QStringLiteral("org.kde.StatusNotifierItem");
@@ -317,7 +317,7 @@ void TrayItem::apply(const QVariantMap &p)
         icon = letterIcon(m_title.isEmpty() ? m_id : m_title);
     m_action->setIcon(icon);
 
-    // Tooltip: (s a(iiay) s s): icon, images, title, text (may be HTML)
+    // Подсказка: (s a(iiay) s s) — значок, картинки, заголовок, текст (бывает HTML)
     QString tipTitle, tipText;
     const QVariant tt = p.value(QStringLiteral("ToolTip"));
     if (tt.canConvert<QDBusArgument>()) {
@@ -361,7 +361,7 @@ void TrayItem::apply(const QVariantMap &p)
             m_importer = new DBusMenuImporter(m_service, menuPath);
             m_importer->prepareRootOnShow();
             m_importer->refresh();
-            // The panel's QMenuBar shows the menu: an item with the icon + a drop-down menu
+            // Меню показывает QMenuBar панели: пункт со значком + выпадающее меню
             m_action->setMenu(m_importer->rootMenu());
         }
     }
@@ -384,7 +384,7 @@ void TrayItem::call(const QString &method, const QVariantList &args, bool report
         w->deleteLater();
         if (w->isError()) {
             const QString err = w->error().name();
-            // No such method: the program expects a click to open the menu
+            // Нет такого метода — программа ждёт, что по щелчку откроется меню
             if (err == QLatin1String("org.freedesktop.DBus.Error.UnknownMethod")
                 || err == QLatin1String("org.freedesktop.DBus.Error.NotSupported"))
                 Q_EMIT activateFailed();
@@ -412,7 +412,7 @@ void TrayItem::scroll(int delta, Qt::Orientation o)
     call(QStringLiteral("Scroll"), {delta, o == Qt::Horizontal ? QStringLiteral("horizontal") : QStringLiteral("vertical")});
 }
 
-// ---------------- host ----------------
+// ---------------- хост ----------------
 
 SystemTray::SystemTray(QObject *parent)
     : QObject(parent)
@@ -428,7 +428,7 @@ SystemTray::SystemTray(QObject *parent)
     m_hostName = QStringLiteral("org.kde.StatusNotifierHost-%1").arg(getpid());
     bus().interface()->registerService(m_hostName, QDBusConnectionInterface::DontQueueService);
 
-    // Another watcher disappeared (e.g. another panel was closed): take its place
+    // Чужой справочник исчез (например, закрыли другую панель) — занять его место
     auto *ownerWatch = new QDBusServiceWatcher(QLatin1String(kWatcherService), bus(),
                                                QDBusServiceWatcher::WatchForOwnerChange, this);
     connect(ownerWatch, &QDBusServiceWatcher::serviceOwnerChanged, this,
@@ -465,7 +465,7 @@ void SystemTray::becomeWatcherOrClient()
         bus().unregisterObject(QLatin1String(kWatcherPath));
         delete w;
     }
-    // A watcher already exists (waybar, another panel): act as a host only
+    // Справочник уже есть (waybar, другая панель) — работаем только хостом
     static bool connected = false;
     if (!connected) {
         connected = true;

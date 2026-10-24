@@ -17,9 +17,9 @@ class QLabel;
 class QMenuBar;
 class QScreen;
 
-// The top bar on one monitor:
-//   [✕ – ❐] [Application] [File Edit View …]   [tray] [ᛒ] [🔋] [En] [⇅] [🔊] [clock] [⏻]
-// The window buttons on the left are visible while the active window is maximized.
+// Верхняя полоса на одном мониторе:
+//   [✕ – ❐] [Приложение] [Файл Правка Вид …]   [трей] [ᛒ] [🔋] [En] [⇅] [🔊] [часы] [⏻]
+// Кнопки окна слева видны, пока активное окно развёрнуто.
 class Panel : public QWidget
 {
     Q_OBJECT
@@ -54,20 +54,20 @@ private:
 
     MenuController *m_controller;
     QScreen *m_screen;
-    QMenuBar *m_appBar;   // bold application name + window actions
-    QMenuBar *m_bar;      // the application's own menu
+    QMenuBar *m_appBar;   // жирное имя приложения + действия с окном
+    QMenuBar *m_bar;      // меню самого приложения
     QLabel *m_clock;
-    QMenuBar *m_sessionBar; // power icon on the right
-    QMenuBar *m_soundBar;   // volume icon left of the clock
-    QMenuBar *m_netBar;     // network icon left of the volume
-    QMenuBar *m_kbdBar;     // keyboard layout ("En") left of the network
-    QMenuBar *m_batBar;     // battery left of the layout (hidden if there are no batteries)
-    QMenuBar *m_btBar;      // Bluetooth left of the battery (hidden if there is no adapter)
-    QMenuBar *m_trayBar;    // tray (program icons) left of Bluetooth
-    QAction *m_trayClicked = nullptr; // the icon clicked on this monitor
+    QMenuBar *m_sessionBar; // значок питания справа
+    QMenuBar *m_soundBar;   // значок громкости слева от часов
+    QMenuBar *m_netBar;     // значок сети слева от громкости
+    QMenuBar *m_kbdBar;     // раскладка («En») слева от сети
+    QMenuBar *m_batBar;     // батарея слева от раскладки (скрыт, если батарей нет)
+    QMenuBar *m_btBar;      // Bluetooth слева от батареи (скрыт, если адаптера нет)
+    QMenuBar *m_trayBar;    // трей (значки программ) слева от Bluetooth
+    QAction *m_trayClicked = nullptr; // значок, по которому щёлкнули на этом мониторе
     Indicators m_ind;
     void updateIndicators();
     SoundMenu *m_sound;
     LabwcTheme *m_theme;
-    QWidget *m_winButtons;  // close/minimize/restore of the maximized window (as in Unity)
+    QWidget *m_winButtons;  // закрыть/свернуть/восстановить развёрнутого окна (как в Unity)
 };

@@ -79,7 +79,7 @@ QIcon batteryIcon(const QColor &color, int size, double percent, bool charging, 
         QPainter p(&pm);
         p.setRenderHint(QPainter::Antialiasing);
         const qreal u = size / 16.0;
-        // Body and terminal (a horizontal battery, as in Unity)
+        // Корпус и «плюс» (горизонтальная батарейка, как в Unity)
         const QRectF body(1 * u, 4 * u, 12.5 * u, 8 * u);
         p.setPen(QPen(color, 1.2 * u));
         p.setBrush(Qt::NoBrush);
@@ -87,14 +87,14 @@ QIcon batteryIcon(const QColor &color, int size, double percent, bool charging, 
         p.setPen(Qt::NoPen);
         p.setBrush(color);
         p.drawRoundedRect(QRectF(13.8 * u, 6.3 * u, 1.6 * u, 3.4 * u), 0.6 * u, 0.6 * u);
-        // Charge level: red at ≤10%
+        // Заряд: красный при ≤10%
         const double frac = qBound(0.0, percent, 100.0) / 100.0;
         QColor fill = percent <= 10 && !charging ? QColor(0xe0, 0x4a, 0x3f) : color;
         const QRectF inner = body.adjusted(2 * u, 2 * u, -2 * u, -2 * u);
         if (frac > 0)
             p.fillRect(QRectF(inner.left(), inner.top(), inner.width() * qMax(0.08, frac), inner.height()), fill);
         if (charging && !full) {
-            // Lightning bolt on top, with a dark outline so it shows on a full battery
+            // Молния поверх, с тёмной обводкой, чтобы была видна на заполненной батарее
             QPainterPath bolt;
             bolt.moveTo(8.4 * u, 3 * u);
             bolt.lineTo(4.6 * u, 8.6 * u);
@@ -128,7 +128,7 @@ BatteryIndicator::BatteryIndicator(QObject *parent)
     m_debounce->setInterval(200);
     connect(m_debounce, &QTimer::timeout, this, &BatteryIndicator::refresh);
 
-    // UPower emits signals on changes; without it, poll once a minute
+    // UPower шлёт сигналы при изменениях; без него — опрос раз в минуту
     m_timer = new QTimer(this);
     m_timer->setInterval(60 * 1000);
     connect(m_timer, &QTimer::timeout, this, &BatteryIndicator::refresh);
@@ -181,7 +181,7 @@ QList<BatteryIndicator::Device> BatteryIndicator::readUPower(bool *ok) const
         Device d;
         d.kind = p.value(QStringLiteral("Type")).toInt();
         if (d.kind == KindLinePower || !p.value(QStringLiteral("IsPresent"), true).toBool())
-            continue; // skip the AC adapter and removed batteries
+            continue; // сетевой адаптер и вынутые батареи не показываем
         d.percent = p.value(QStringLiteral("Percentage")).toDouble();
         d.state = p.value(QStringLiteral("State")).toInt();
         d.toEmpty = p.value(QStringLiteral("TimeToEmpty")).toLongLong();
@@ -210,13 +210,13 @@ QList<BatteryIndicator::Device> BatteryIndicator::readSysfs() const
             continue;
         Device d;
         d.kind = KindBattery;
-        // scope=Device: a peripheral's battery (mouse, gamepad), not the computer's
+        // scope=Device — батарея периферии (мышь, геймпад), а не компьютера
         d.powerSupply = read(dir + QStringLiteral("scope")) != QLatin1String("Device");
         d.name = kindName(KindBattery);
         const QString cap = read(dir + QStringLiteral("capacity"));
         if (!cap.isEmpty()) {
             d.percent = cap.toDouble();
-        } else { // some ARM controllers only provide energy_now/energy_full
+        } else { // некоторые ARM-контроллеры дают только energy_now/energy_full
             const double now = read(dir + QStringLiteral("energy_now")).toDouble() + read(dir + QStringLiteral("charge_now")).toDouble();
             const double full = read(dir + QStringLiteral("energy_full")).toDouble() + read(dir + QStringLiteral("charge_full")).toDouble();
             d.percent = full > 0 ? 100.0 * now / full : -1;
@@ -226,7 +226,7 @@ QList<BatteryIndicator::Device> BatteryIndicator::readSysfs() const
                 : st == QLatin1String("Discharging") ? StateDischarging
                 : st == QLatin1String("Full") ? StateFull
                 : StatePendingCharge;
-        // Time left: energy (µWh) / power (µW) or charge (µAh) / current (µA)
+        // Оставшееся время: энергия (мкВт·ч) / мощность (мкВт) или заряд (мкА·ч) / ток (мкА)
         auto num = [&](const char *f) { return read(dir + QLatin1String(f)).toDouble(); };
         double now = num("energy_now"), full = num("energy_full"), rate = std::abs(num("power_now"));
         if (now <= 0 || rate <= 0) {
@@ -255,14 +255,14 @@ void BatteryIndicator::refresh()
     QList<Device> devs = readUPower(&ok);
     if (!ok)
         devs = readSysfs();
-    // Computer batteries first, then peripherals
+    // Сначала батареи компьютера, потом периферия
     std::stable_sort(devs.begin(), devs.end(), [](const Device &a, const Device &b) { return a.powerSupply > b.powerSupply; });
     m_devices = devs;
 
     const QString mode = panelSetting(QStringLiteral("battery/show"), QStringLiteral("auto")).toString();
     const bool shown = mode == QLatin1String("always") || (mode != QLatin1String("never") && !devs.isEmpty());
 
-    // The panel shows the computer battery (average charge if several), otherwise the first peripheral
+    // На панели — батарея компьютера (несколько — средний заряд), иначе первая периферия
     const QColor fg(0xe8, 0xe8, 0xec);
     QList<Device> mains;
     for (const Device &d : devs)
@@ -303,7 +303,7 @@ void BatteryIndicator::refresh()
         if (panelSetting(QStringLiteral("battery/showTime"), false).toBool() && !time.isEmpty())
             label += (label.isEmpty() ? QString() : QStringLiteral(" ")) + QStringLiteral("(%1)").arg(time);
 
-        // Low battery warnings: once per threshold
+        // Предупреждения о низком заряде — один раз на каждый порог
         if (discharging && mains.first().powerSupply)
             notifyLow(Device{QString(), KindBattery, pct, StateDischarging, toEmpty});
         else
@@ -365,7 +365,7 @@ void BatteryIndicator::rebuildMenu()
                                                    d.state == StateFull),
                                        text);
         a->setIconVisibleInMenu(true);
-        a->setEnabled(false); // as in Unity, these rows are read-only
+        a->setEnabled(false); // как в Unity — строки только для чтения
     }
     m_menu->addSeparator();
     auto toggle = [this](const QString &text, const QString &key) {

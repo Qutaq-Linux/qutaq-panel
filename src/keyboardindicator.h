@@ -5,19 +5,19 @@
 
 class QMenu;
 
-// Keyboard layout indicator ("En", "Ru"), as in Ubuntu Unity.
-//   click             next layout;
-//   right-click       menu with the list of layouts.
+// Индикатор раскладки клавиатуры («En», «Ru»), как в Ubuntu Unity.
+//   щелчок            — следующая раскладка;
+//   правый щелчок     — меню со списком раскладок.
 //
-// labwc offers no way to query or switch the layout from outside (no IPC, no Wayland
-// protocol), so the panel switches it itself:
-//   1. writes ~/.config/labwc/environment.d/zz-qutaq-panel.env with the same
-//      XKB_DEFAULT_LAYOUT list, but with the wanted layout first;
-//   2. sends labwc SIGHUP (= labwc --reconfigure); it re-reads the environment
-//      and applies the layout.
-// The user's own environment file is left untouched. The keyboard shortcut for switching
-// is a labwc keybind that runs "qutaq-panel --next-layout" (see README):
-// the panel cannot see switching done by the XKB option grp:….
+// У labwc нет способа узнать или переключить раскладку извне (ни IPC, ни протокола
+// Wayland), поэтому раскладку переключает сама панель:
+//   1. пишет ~/.config/labwc/environment.d/zz-qutaq-panel.env с тем же списком
+//      XKB_DEFAULT_LAYOUT, но нужной раскладкой первой;
+//   2. посылает labwc сигнал HUP (= labwc --reconfigure) — он перечитывает окружение
+//      и применяет раскладку.
+// Свой файл environment панель не трогает. Сочетание клавиш для смены раскладки —
+// через привязку labwc, которая вызывает «qutaq-panel --next-layout» (см. README):
+// переключение по XKB-опции grp:… панель увидеть не может.
 class KeyboardIndicator : public QObject
 {
     Q_OBJECT
@@ -25,7 +25,7 @@ class KeyboardIndicator : public QObject
 public:
     struct Layout {
         QString layout;      // us
-        QString variant;     // empty or dvorak
+        QString variant;     // пусто или dvorak
         QString shortName;   // En
         QString description; // English (US)
     };
@@ -34,13 +34,13 @@ public:
 
     QMenu *menu() const { return m_menu; }
     QString shortName() const;
-    bool isShown() const;                 // more than one layout (or keyboard/show=always)
-    bool canSwitch() const;               // the panel was started from labwc
+    bool isShown() const;                 // раскладок больше одной (или keyboard/show=always)
+    bool canSwitch() const;               // панель запущена из labwc
     QList<Layout> layouts() const { return m_layouts; }
     int current() const { return m_current; }
 
 public Q_SLOTS:
-    // Also available over D-Bus: org.qutaq.Panel /Keyboard
+    // Доступны и по D-Bus: org.qutaq.Panel /Keyboard
     void Next();
     void Previous();
     void Set(int index);
@@ -54,6 +54,6 @@ private:
     void apply();
 
     QMenu *m_menu = nullptr;
-    QList<Layout> m_layouts; // in the order of the user's environment file
+    QList<Layout> m_layouts; // в порядке из файла environment пользователя
     int m_current = 0;
 };

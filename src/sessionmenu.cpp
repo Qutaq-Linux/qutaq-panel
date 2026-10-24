@@ -69,7 +69,7 @@ static bool serviceAvailable(const QString &name)
     return bus.isConnected() && bus.interface() && bus.interface()->isServiceRegistered(name).value();
 }
 
-// logind: CanPowerOff etc. answer "yes", "no", "challenge" (will ask for a password) or "na"
+// logind: CanPowerOff и т. п. отвечают "yes", "no", "challenge" (спросит пароль) или "na"
 static bool logindCan(const QString &what)
 {
     QDBusMessage msg = QDBusMessage::createMethodCall(kLogind, kLogindPath, kLogindManager,
@@ -94,7 +94,7 @@ QIcon powerIcon(const QColor &color, int size)
         p.setPen(pen);
         const qreal m = size * 0.18;
         const QRectF r(m, m, size - 2 * m, size - 2 * m);
-        p.drawArc(r, (90 + 35) * 16, (360 - 70) * 16); // a circle with a gap at the top
+        p.drawArc(r, (90 + 35) * 16, (360 - 70) * 16); // окружность с разрывом сверху
         p.drawLine(QPointF(size / 2.0, size * 0.1), QPointF(size / 2.0, size * 0.48));
         p.end();
         icon.addPixmap(pm);
@@ -109,7 +109,7 @@ static QIcon personIcon()
         if (!i.isNull())
             return i;
     }
-    // Draw it ourselves: head and shoulders
+    // Нарисовать самим: голова и плечи
     QPixmap pm(32, 32);
     pm.fill(Qt::transparent);
     QPainter p(&pm);
@@ -136,7 +136,7 @@ SessionMenu::SessionMenu(QObject *parent)
     m_menu->menuAction()->setIcon(powerIcon(QColor(0xe8, 0xe8, 0xec), 16));
     m_menu->menuAction()->setToolTip(tr("Session"));
     m_menu->setToolTipsVisible(true);
-    // The state (who is logged in, whether hibernation is available) changes, so build it on every opening.
+    // Состояние (кто вошёл, доступна ли гибернация) меняется — собираем при каждом открытии.
     connect(m_menu, &QMenu::aboutToShow, this, &SessionMenu::rebuild);
     rebuild();
 }
@@ -182,10 +182,10 @@ void SessionMenu::rebuild()
     off->setEnabled(logind && (logindCan(QStringLiteral("PowerOff")) || logindCan(QStringLiteral("Reboot"))));
 }
 
-// ---------- users ----------
+// ---------- пользователи ----------
 
 struct UserInfo {
-    QString name;      // login
+    QString name;      // логин
     QString realName;
     QString iconFile;
     uint uid = 0;
@@ -223,7 +223,7 @@ static QList<UserInfo> listUsers()
         return out;
     }
 
-    // No AccountsService: regular users from /etc/passwd
+    // AccountsService нет — обычные пользователи из /etc/passwd
     setpwent();
     while (passwd *pw = getpwent()) {
         const QString shell = QString::fromLocal8Bit(pw->pw_shell);
@@ -333,12 +333,12 @@ void SessionMenu::switchToUser(const QString &userName)
         qInfo().noquote() << "switching to user" << userName;
 }
 
-// ---------- power and logout ----------
+// ---------- питание и выход ----------
 
 void SessionMenu::callLogind(const QString &method)
 {
     QDBusMessage msg = QDBusMessage::createMethodCall(kLogind, kLogindPath, kLogindManager, method);
-    msg << true; // interactive: let polkit ask for a password if needed
+    msg << true; // interactive: разрешить polkit спросить пароль, если нужно
     const QDBusMessage reply = systemBus().call(msg, QDBus::Block, 5000);
     if (reply.type() == QDBusMessage::ErrorMessage)
         qWarning().noquote() << "logind" << method << reply.errorMessage();
@@ -349,7 +349,7 @@ void SessionMenu::callLogind(const QString &method)
 void SessionMenu::doLogOut()
 {
     qInfo() << "logging out";
-    // labwc: SIGTERM to the compositor itself (`labwc --exit` does the same)
+    // labwc: сигнал TERM самому композитору (то же делает `labwc --exit`)
     const qint64 labwc = qEnvironmentVariable("LABWC_PID").toLongLong();
     if (labwc > 1) {
         ::kill(pid_t(labwc), SIGTERM);
@@ -360,7 +360,7 @@ void SessionMenu::doLogOut()
     if (qEnvironmentVariableIsSet("HYPRLAND_INSTANCE_SIGNATURE")
         && QProcess::startDetached(QStringLiteral("hyprctl"), {QStringLiteral("dispatch"), QStringLiteral("exit")}))
         return;
-    // Otherwise close the whole session through logind
+    // Остальное — закрыть сеанс целиком через logind
     const QString session = qEnvironmentVariable("XDG_SESSION_ID");
     if (!session.isEmpty()) {
         QDBusMessage msg = QDBusMessage::createMethodCall(kLogind, kLogindPath, kLogindManager,
@@ -432,7 +432,7 @@ void SessionMenu::confirm(Power what)
         main = buttons->addButton(tr("Log Out"), QDialogButtonBox::AcceptRole);
         connect(main, &QPushButton::clicked, this, [this] { doLogOut(); });
     } else {
-        // As in Unity: the shutdown dialog also offers restart.
+        // Как в Unity: в окне выключения есть и перезагрузка.
         if (canReboot) {
             QPushButton *r = buttons->addButton(tr("Restart"),
                                                 what == Power::Restart ? QDialogButtonBox::AcceptRole
@@ -456,20 +456,20 @@ void SessionMenu::confirm(Power what)
     layout->addSpacing(12);
     layout->addWidget(buttons);
     dlg->setMinimumWidth(420);
-    // Fixed size, so that tiling compositors (sway etc.) show the window floating.
+    // Фиксированный размер: плиточные композиторы (sway и т. п.) тогда показывают окно плавающим.
     dlg->setFixedSize(dlg->sizeHint());
     dlg->show();
     dlg->raise();
     dlg->activateWindow();
-    // The main button is the default (Enter). Set the focus after showing, otherwise Qt gives
-    // it to the first button ("Cancel") and Enter would cancel.
+    // Главная кнопка — по умолчанию (Enter). Фокус ставим после показа, иначе Qt отдаст
+    // его первой кнопке («Отмена»), и Enter сработал бы как отмена.
     if (main) {
         main->setDefault(true);
         main->setFocus();
     }
 }
 
-// ---------- system settings and information ----------
+// ---------- параметры и сведения о системе ----------
 
 void SessionMenu::openSettings()
 {
@@ -509,7 +509,7 @@ static QString osRelease(const QString &key)
     return {};
 }
 
-// /proc files report zero size, so read them whole instead of line by line until atEnd().
+// Файлы /proc сообщают нулевой размер, поэтому читаем их целиком, а не построчно до atEnd().
 static QStringList procLines(const QString &path)
 {
     QFile f(path);

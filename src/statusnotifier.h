@@ -12,14 +12,14 @@ class QMenu;
 class QTimer;
 class DBusMenuImporter;
 
-// Tray: program icons via the StatusNotifierItem protocol (KDE/freedesktop).
-// Used by libappindicator / libayatana-appindicator (Unity), Qt (QSystemTrayIcon),
-// Electron, Chromium, Telegram, Steam, nm-applet --indicator, blueman-applet and others.
-// The old X11 tray (XEmbed) is impossible on Wayland; for such programs there are the
-// snixembed and xembedsniproxy bridges (see README).
+// Трей: значки программ по протоколу StatusNotifierItem (KDE/freedesktop).
+// Его используют libappindicator / libayatana-appindicator (Unity), Qt (QSystemTrayIcon),
+// Electron, Chromium, Telegram, Steam, nm-applet --indicator, blueman-applet и др.
+// Старый X11-трей (XEmbed) на Wayland невозможен — для таких программ есть мосты
+// snixembed или xembedsniproxy (см. README).
 
-// org.kde.StatusNotifierWatcher is the registry of icons. The panel becomes it itself
-// if the bus doesn't have one yet (under labwc it usually doesn't).
+// org.kde.StatusNotifierWatcher — «справочник» значков. Панель становится им сама,
+// если на шине его ещё нет (под labwc обычно нет).
 class StatusNotifierWatcher : public QObject, protected QDBusContext
 {
     Q_OBJECT
@@ -47,12 +47,12 @@ Q_SIGNALS:
 private:
     void onServiceGone(const QString &service);
 
-    QStringList m_items; // "service/path"
+    QStringList m_items; // «служба/путь»
     QSet<QString> m_hosts;
     QDBusServiceWatcher *m_serviceWatcher;
 };
 
-// A single icon
+// Один значок
 class TrayItem : public QObject
 {
     Q_OBJECT
@@ -60,25 +60,25 @@ public:
     TrayItem(const QString &key, QObject *parent);
     ~TrayItem() override;
 
-    QString key() const { return m_key; }        // "service/path", as in the watcher
+    QString key() const { return m_key; }        // «служба/путь», как в справочнике
     QString service() const { return m_service; }
     QString path() const { return m_path; }
-    QString id() const { return m_id; }          // Id, for the hidden list in the settings
+    QString id() const { return m_id; }          // Id — для списка скрытых в настройках
     QString title() const { return m_title; }
-    QAction *action() const { return m_action; } // the icon in the panel (shared by all monitors)
-    QMenu *menu() const;                         // the application's menu or nullptr
+    QAction *action() const { return m_action; } // значок в панели (общий для всех мониторов)
+    QMenu *menu() const;                         // меню приложения или nullptr
     bool itemIsMenu() const { return m_itemIsMenu; }
     bool isReady() const { return m_ready; }
     bool isPassive() const { return m_status == QLatin1String("Passive"); }
 
-    void activate(const QPoint &globalPos);          // left button
-    void secondaryActivate(const QPoint &globalPos); // middle button
-    void contextMenu(const QPoint &globalPos);       // right button, if the program has no D-Bus menu
+    void activate(const QPoint &globalPos);          // левая кнопка
+    void secondaryActivate(const QPoint &globalPos); // средняя
+    void contextMenu(const QPoint &globalPos);       // правая, если у программы нет меню D-Bus
     void scroll(int delta, Qt::Orientation o);
 
 Q_SIGNALS:
     void changed();
-    void activateFailed(); // the program can't Activate: show the menu instead
+    void activateFailed(); // программа не умеет Activate — показать меню вместо этого
 
 private Q_SLOTS:
     void scheduleRefresh();
@@ -99,9 +99,9 @@ private:
     QTimer *m_debounce;
 };
 
-// Tray host: keeps the list of icons and notifies panels of changes.
-// Settings, section [tray]: show=auto|never, hidden=Id1,Id2 (hide icons),
-// showPassive=false (also show "passive" icons).
+// Хост трея: держит список значков и сообщает панелям об изменениях.
+// Настройки, секция [tray]: show=auto|never, hidden=Id1,Id2 (скрыть значки),
+// showPassive=false (показывать и «пассивные» значки).
 class SystemTray : public QObject
 {
     Q_OBJECT
@@ -113,7 +113,7 @@ public:
 
 Q_SIGNALS:
     void changed();
-    void menuRequested(QAction *action); // open the icon's menu (Activate unsupported)
+    void menuRequested(QAction *action); // открыть меню значка (Activate не поддерживается)
 
 private Q_SLOTS:
     void onItemRegistered(const QString &key) { addItem(key); }
@@ -126,12 +126,12 @@ private:
     void removeItem(const QString &key);
     void loadItemsFromWatcher();
 
-    StatusNotifierWatcher *m_watcher = nullptr; // our own watcher, if we got the name
+    StatusNotifierWatcher *m_watcher = nullptr; // свой справочник, если удалось занять имя
     QString m_hostName;
     QList<TrayItem *> m_items;
     QTimer *m_changed;
 };
 
-// If Qt has no icon theme (under labwc there is usually no platform plugin), use the same
-// one as GTK/Xfce, otherwise tray and menu icons won't be found by name.
+// Если у Qt нет темы значков (под labwc обычно нет плагина платформы), взять ту же,
+// что у GTK/Xfce — иначе значки трея и меню по именам не найдутся.
 void setupIconTheme();

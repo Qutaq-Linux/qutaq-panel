@@ -7,27 +7,27 @@ class QAction;
 class QDialog;
 class QMenu;
 
-// Session menu in the right corner of the panel, like the session indicator in Ubuntu Unity:
+// Меню сессии в правом углу панели — как индикатор сессии в Ubuntu Unity:
 //
-//   About This Computer
-//   System Settings…
+//   Об этом компьютере
+//   Параметры системы…
 //   ─────────────
-//   users (switching via LightDM)
+//   пользователи (смена через LightDM)
 //   ─────────────
-//   Log Out…
-//   Suspend
-//   Hibernate            (if available)
-//   Shut Down…           (the dialog also offers "Restart")
+//   Завершить сеанс…
+//   Ждущий режим
+//   Гибернация           (если доступна)
+//   Выключить…           (в диалоге — ещё и «Перезагрузить»)
 //
-// Power goes through logind, users through AccountsService + logind, user switching through
-// org.freedesktop.DisplayManager (LightDM). All over the D-Bus system bus.
+// Питание — через logind, пользователи — AccountsService + logind, смена пользователя —
+// org.freedesktop.DisplayManager (LightDM). Всё по системной шине D-Bus.
 //
-// Settings: ~/.config/qutaq-panel/panel.conf, section [session]:
-//   confirm=true            ask for confirmation before logging out and shutting down
-//   showUsers=true          show the list of users
-//   showRestart=false       a separate "Restart…" item (Unity has none: it is in the shutdown dialog)
-//   settingsCommand=        command for "System Settings"; empty means find one
-//   aboutCommand=           command for "About This Computer"; empty means the built-in window
+// Настройки: ~/.config/qutaq-panel/panel.conf, секция [session]:
+//   confirm=true            спрашивать подтверждение перед выходом и выключением
+//   showUsers=true          показывать список пользователей
+//   showRestart=false       отдельный пункт «Перезагрузить…» (в Unity его нет — он в диалоге выключения)
+//   settingsCommand=        команда «Параметров системы»; пусто — найти самому
+//   aboutCommand=           команда «Об этом компьютере»; пусто — встроенное окно
 class SessionMenu : public QObject
 {
     Q_OBJECT
@@ -53,6 +53,6 @@ private:
     QPointer<QDialog> m_dialog;
 };
 
-// A drawn power icon: independent of the icon theme and visible on the dark panel.
+// Нарисованный значок питания — не зависит от темы значков и виден на тёмной панели.
 class QIcon;
 QIcon powerIcon(const QColor &color, int size);

@@ -35,7 +35,7 @@ static bool toKey(const QVariant &v, QPair<uint, uint> &key)
     return true;
 }
 
-// GTK: "_" is a mnemonic, "__" a literal. Qt: "&" is a mnemonic, "&&" a literal.
+// GTK: "_" — мнемоника, "__" — литерал. Qt: "&" — мнемоника, "&&" — литерал.
 static QString convertLabel(const QString &raw)
 {
     const QString in = raw.trimmed();
@@ -98,7 +98,7 @@ GMenuImporter::GMenuImporter(const QString &service, const QString &menuPath, co
     m_rebuildTimer->setSingleShot(true);
     m_rebuildTimer->setInterval(50);
     connect(m_rebuildTimer, &QTimer::timeout, this, [this] {
-        if (QApplication::activePopupWidget()) { // the user is in a menu: wait
+        if (QApplication::activePopupWidget()) { // пользователь в меню — подождём
             m_rebuildTimer->start(250);
             return;
         }
@@ -135,8 +135,8 @@ void GMenuImporter::setupActionPaths()
         return;
     }
 
-    // GtkApplication windows: <base>/window/<N>. Which one is active cannot be learned over the bus,
-    // so take the newest (largest N).
+    // Окна GtkApplication: <база>/window/<N>. Какое из них активно, по шине не узнать —
+    // берём самое новое (наибольший N).
     QDBusMessage msg = QDBusMessage::createMethodCall(m_service, base + QStringLiteral("/window"),
                                                       QStringLiteral("org.freedesktop.DBus.Introspectable"),
                                                       QStringLiteral("Introspect"));
@@ -174,7 +174,7 @@ bool GMenuImporter::subscribe(const QList<uint> &groups)
         qWarning().noquote() << "org.gtk.Menus.Start" << m_service << m_path << reply.errorMessage();
         return false;
     }
-    // The reply fully describes the requested groups, so drop their old content.
+    // Ответ полностью описывает запрошенные группы — старое содержимое выбрасываем.
     for (auto it = m_model.begin(); it != m_model.end();)
         it = groups.contains(it.key().first) ? m_model.erase(it) : std::next(it);
 
@@ -228,8 +228,8 @@ void GMenuImporter::describeActions()
             arg >> name;
             arg.beginStructure();
             arg >> enabled;
-            // Actions without a parameter have an empty parameter type ("g"); QDBusSignature
-            // complains about it in the log, so read it as a variant and ignore it.
+            // Тип параметра ("g") у действий без параметра пустой; QDBusSignature на нём
+            // ругается в лог, поэтому читаем как вариант и не используем.
             (void)arg.asVariant();
             arg >> state;
             arg.endStructure();
@@ -269,7 +269,7 @@ static bool isUnityItem(const QVariantMap &item)
         || item.value(QStringLiteral("submenu-action")).toString().startsWith(QLatin1String("unity."));
 }
 
-// Whether a section has at least one item that does not come from appmenu-gtk-module
+// Есть ли в секции хоть один пункт не от appmenu-gtk-module
 bool GMenuImporter::sectionHasNative(const Key &key) const
 {
     for (const QVariantMap &item : m_model.value(key)) {
@@ -284,7 +284,7 @@ bool GMenuImporter::sectionHasNative(const Key &key) const
     return false;
 }
 
-// Sections made entirely of the module's items (at any depth of the root)
+// Секции, целиком состоящие из пунктов модуля (на любой глубине корня)
 void GMenuImporter::collectUnitySections(const Key &key, QSet<Key> &out) const
 {
     for (const QVariantMap &item : m_model.value(key)) {
@@ -300,13 +300,13 @@ void GMenuImporter::collectUnitySections(const Key &key, QSet<Key> &out) const
 
 void GMenuImporter::buildRoot()
 {
-    // When a GtkApplication has its own menu, appmenu-gtk-module also nests into its model
-    // copies of every window's menu bar (unity.* actions), so the panel would show one set of
-    // "File, Edit…" per window. Keep the application's own menu: in the module's copies
-    // item states are wrong, there are no shortcuts, and they don't tell windows apart.
+    // Если у GtkApplication своё меню, appmenu-gtk-module вкладывает в его модель ещё и
+    // копии строк меню всех окон (действия unity.*) — в панели было бы по набору
+    // «Файл, Правка…» на каждое окно. Оставляем родное меню приложения: в копиях модуля
+    // искажены состояния пунктов, нет горячих клавиш, и они не различают окна.
     m_skipSections.clear();
 
-    // Root sections may live in other groups; load them in advance.
+    // Секции корня могут лежать в других группах — подгружаем их заранее.
     for (int round = 0; round < 4; ++round) {
         QList<uint> missing;
         for (auto it = m_model.cbegin(); it != m_model.cend(); ++it) {
@@ -352,7 +352,7 @@ void GMenuImporter::populate(QMenu *menu, const Key &key)
 {
     clearMenu(menu);
     addItems(menu, key, menu == m_root);
-    // Remove a trailing separator
+    // Убрать висящий в конце разделитель
     const auto acts = menu->actions();
     if (!acts.isEmpty() && acts.last()->isSeparator())
         acts.last()->setVisible(false);
@@ -369,7 +369,7 @@ void GMenuImporter::addItems(QMenu *menu, const Key &key, bool isRoot)
         if (toKey(item.value(QStringLiteral(":section")), sub)) {
             if (m_skipSections.contains(sub))
                 continue;
-            // GTK draws a separator between sections
+            // GTK рисует разделитель между секциями
             const auto acts = menu->actions();
             if (!isRoot && !acts.isEmpty() && !acts.last()->isSeparator()) {
                 QAction *sep = menu->addSeparator();
@@ -390,7 +390,7 @@ QMenu *GMenuImporter::createSubmenu(QMenu *parent, const QVariantMap &item, cons
 {
     auto *sub = new QMenu;
     sub->setTitle(convertLabel(item.value(QStringLiteral("label")).toString()));
-    sub->menuAction()->setVisible(!sub->title().isEmpty()); // Thunar sometimes has an empty internal item
+    sub->menuAction()->setVisible(!sub->title().isEmpty()); // у Thunar бывает пустой служебный пункт
     parent->addAction(sub->menuAction());
     m_owned[parent] << sub;
     m_submenus.insert(sub, {key, item.value(QStringLiteral("submenu-action")).toString()});
@@ -420,7 +420,7 @@ QAction *GMenuImporter::createAction(QMenu *menu, const QVariantMap &item)
 
     if (exists && info.hasState) {
         if (target.isValid()) {
-            // Radio: an action with a string (or other) state; the item is checked if state == target
+            // Радио: действие со строковым (или иным) состоянием, пункт отмечен, если state == target
             auto *group = menu->findChild<QActionGroup *>(QStringLiteral("gmenu-radio"), Qt::FindDirectChildrenOnly);
             if (!group) {
                 group = new QActionGroup(menu);
@@ -471,7 +471,7 @@ void GMenuImporter::setActionState(const QString &fullName, bool state, bool blo
 void GMenuImporter::prepareSubmenu(QMenu *menu)
 {
     const SubmenuInfo info = m_submenus.value(menu);
-    // appmenu-gtk-module fills a submenu only after its submenu-action is enabled.
+    // appmenu-gtk-module наполняет подменю только после включения submenu-action.
     if (!info.submenuAction.isEmpty())
         setActionState(info.submenuAction, true, true);
     subscribe({info.key.first});
@@ -518,12 +518,12 @@ void GMenuImporter::onMenusChanged(const QDBusMessage &msg)
     }
     arg.endArray();
 
-    // Rebuild the root with a delay; open submenus right away.
+    // Корень перестраиваем с задержкой; открытые подменю — сразу.
     for (const Key &k : changed) {
         if (m_usedKeys.value(m_root).contains(k) || k == Key{0, 0})
             m_rebuildTimer->start();
     }
-    // populate() deletes nested submenus, so collect the list first.
+    // populate() удаляет вложенные подменю, поэтому сначала собираем список.
     QList<QPointer<QMenu>> toRepopulate;
     for (auto it = m_submenus.cbegin(); it != m_submenus.cend(); ++it) {
         if (!it.key()->isVisible())

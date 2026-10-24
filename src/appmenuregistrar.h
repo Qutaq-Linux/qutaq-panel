@@ -8,25 +8,25 @@
 
 class QDBusServiceWatcher;
 
-// A menu that an application has registered with us.
+// Запись о меню, которое приложение зарегистрировало у нас.
 struct MenuEntry {
     enum Kind { DBusMenu, GMenu };
-    Kind kind = DBusMenu;      // com.canonical.dbusmenu or org.gtk.Menus
-    quint32 windowId = 0;      // almost always useless on Wayland; kept for the API
-    QString service;           // unique bus name (":1.42")
-    QString path;              // menu object path (com.canonical.dbusmenu or org.gtk.Menus)
-    QString winPath;           // GtkApplication: <base>/window/<N>, the win.* actions of this window
+    Kind kind = DBusMenu;      // com.canonical.dbusmenu или org.gtk.Menus
+    quint32 windowId = 0;      // на Wayland почти всегда бесполезен, храним для API
+    QString service;           // уникальное имя на шине (":1.42")
+    QString path;              // путь объекта меню (com.canonical.dbusmenu или org.gtk.Menus)
+    QString winPath;           // GtkApplication: <база>/window/<N> — действия win.* этого окна
     quint32 pid = 0;
-    QStringList names;         // candidates for matching the window's app_id
-    quint64 serial = 0;        // registration order (newer = larger)
+    QStringList names;         // кандидаты для сопоставления с app_id окна
+    quint64 serial = 0;        // порядок регистрации (новее = больше)
 
-    // The object that belongs to a single window: for GtkApplication the menu is shared, the window is winPath.
+    // Объект, который принадлежит одному окну: для GtkApplication меню общее, а окно — winPath.
     QString key() const { return service + (winPath.isEmpty() ? path : winPath); }
 };
 
-// Implementation of com.canonical.AppMenu.Registrar.
-// Qt applications (QDBusMenuBar) and GTK with appmenu-gtk-module register their menus
-// here, provided the service is on the bus when the application starts.
+// Реализация com.canonical.AppMenu.Registrar.
+// Qt-приложения (QDBusMenuBar) и GTK с appmenu-gtk-module отдают свои меню
+// именно сюда — если сервис есть на шине к моменту запуска приложения.
 class AppMenuRegistrar : public QObject, protected QDBusContext
 {
     Q_OBJECT
@@ -45,11 +45,11 @@ public Q_SLOTS:
     QString GetMenuForWindow(uint windowId, QDBusObjectPath &menuObjectPath);
 
 Q_SIGNALS:
-    // D-Bus signals
+    // D-Bus сигналы
     void WindowRegistered(uint windowId, const QString &service, const QDBusObjectPath &menuObjectPath);
     void WindowUnregistered(uint windowId);
 
-    // Internal signal for the rest of the panel
+    // Внутренний сигнал для остальной панели
     void entriesChanged();
 
 private:
@@ -61,6 +61,6 @@ private:
     quint64 m_serial = 0;
 };
 
-// Process names for matching against the Wayland app_id:
-// comm, basename(exe), basename(argv0), *.desktop from the environment, FLATPAK_ID.
+// Имена процесса для сопоставления с Wayland app_id:
+// comm, basename(exe), basename(argv0), *.desktop из окружения, FLATPAK_ID.
 QStringList processNames(quint32 pid);

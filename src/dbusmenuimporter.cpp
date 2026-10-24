@@ -52,7 +52,7 @@ const QDBusArgument &operator>>(const QDBusArgument &arg, DBusMenuLayoutItem &it
 
 // ---------- helpers ----------
 
-// dbusmenu: "_" is a mnemonic, "__" a literal. Qt: "&" is a mnemonic, "&&" a literal.
+// dbusmenu: "_" — мнемоника, "__" — литерал. Qt: "&" — мнемоника, "&&" — литерал.
 static QString convertLabel(const QString &in)
 {
     QString out;
@@ -138,7 +138,7 @@ void DBusMenuImporter::refresh()
             Q_EMIT invalid();
             return;
         }
-        // Don't rebuild the menu while the user is in it, or it would close under the cursor.
+        // Не перестраиваем меню, пока пользователь в нём — иначе оно закроется под курсором.
         if (QApplication::activePopupWidget()) {
             m_refreshTimer->start(250);
             return;
@@ -260,7 +260,7 @@ void DBusMenuImporter::applyProperties(QAction *action, const QVariantMap &p)
     if (checkable)
         action->setChecked(p.value(QStringLiteral("toggle-state")).toInt() == 1);
 
-    // The shortcut is only displayed: it works inside the menu but not globally (that is up to the application).
+    // Ярлык только показываем: в меню он сработает, глобально — нет (это забота приложения).
     action->setShortcut(convertShortcut(p.value(QStringLiteral("shortcut"))));
     action->setShortcutContext(Qt::WidgetShortcut);
 }
@@ -272,7 +272,7 @@ void DBusMenuImporter::prepareRootOnShow()
 
 void DBusMenuImporter::prepareSubmenu(QMenu *menu, int id)
 {
-    // Lazy implementations (libdbusmenu, Electron, Chromium) fill a submenu only after AboutToShow.
+    // Ленивые реализации (libdbusmenu, Electron, Chromium) наполняют подменю только после AboutToShow.
     QDBusMessage msg = call(QStringLiteral("AboutToShow"));
     msg << id;
     const QDBusMessage reply = QDBusConnection::sessionBus().call(msg, QDBus::Block, 200);
@@ -309,7 +309,7 @@ void DBusMenuImporter::onLayoutUpdated(uint, int parentId)
             return;
         }
     }
-    m_dirty.insert(parentId); // re-read on the next opening
+    m_dirty.insert(parentId); // перечитаем при следующем открытии
 }
 
 void DBusMenuImporter::onItemsPropertiesUpdated(const QDBusMessage &msg)
