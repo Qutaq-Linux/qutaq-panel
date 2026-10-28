@@ -24,6 +24,7 @@ qt_add_executable(qutaq-panel
     src/gmenuimporter.h        src/gmenuimporter.cpp
     src/toplevelmanager.h      src/toplevelmanager.cpp
     src/menucontroller.h       src/menucontroller.cpp
+    src/hud.h                  src/hud.cpp
     src/sessionmenu.h          src/sessionmenu.cpp
     src/soundmenu.h            src/soundmenu.cpp
     src/networkmenu.h          src/networkmenu.cpp

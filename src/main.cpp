@@ -1,3 +1,4 @@
+#include "hud.h"
 #include "menucontroller.h"
 #include "panel.h"
 #include "sessionmenu.h"
@@ -131,6 +132,9 @@ int main(int argc, char *argv[])
 
     // Commands for keybinds: org.qutaq.Panel /Keyboard Next|Previous|Set
     QDBusConnection::sessionBus().registerObject(QStringLiteral("/Keyboard"), &keyboard, QDBusConnection::ExportAllSlots);
+    // The menus of the active application for the HUD (qutaq-dash --hud): org.qutaq.Panel /Hud
+    Hud hud(&controller);
+    QDBusConnection::sessionBus().registerObject(QStringLiteral("/Hud"), &hud, QDBusConnection::ExportAllSlots);
     QDBusConnection::sessionBus().registerService(QStringLiteral("org.qutaq.Panel"));
 
     // One panel per monitor; all show the same menu (shared QActions).
